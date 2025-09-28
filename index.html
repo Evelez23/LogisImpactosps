@@ -55,17 +55,21 @@
         }
         
         .logo {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--impacto-accent) 0%, var(--impacto-gold) 100%);
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            color: white;
-            font-size: 24px;
+            overflow: hidden;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 3px solid var(--impacto-gold);
+        }
+        
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
         
         .church-name {
@@ -349,6 +353,47 @@
             margin-top: 20px;
             border-top: 3px solid var(--impacto-accent);
         }
+        
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .service-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--impacto-accent);
+            text-align: center;
+        }
+        
+        .service-time {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--impacto-primary);
+            margin-bottom: 10px;
+        }
+        
+        .service-date {
+            color: #718096;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        
+        .service-attendance {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--impacto-accent);
+            margin: 10px 0;
+        }
+        
+        .service-vehicles {
+            color: #718096;
+            font-size: 0.9em;
+        }
     </style>
 </head>
 <body>
@@ -356,7 +401,7 @@
         <header>
             <div class="logo-container">
                 <div class="logo">
-                    <i class="fas fa-church"></i>
+                    <img src="https://storage.e.jimdo.com/cdn-cgi/image/quality=85,fit=scale-down,format=auto,trim=0;0;0;0,width=640,height=495/image/503664858/cf400876-ddf7-4079-8ec0-6b347e9dae80.png" alt="Impacto SPS Logo">
                 </div>
                 <div class="church-name">
                     <h1>IMPACTO SPS</h1>
@@ -383,6 +428,12 @@
                     <div class="highlight-card">
                         <div class="highlight-number" id="lastActivityCount">0</div>
                         <div class="highlight-label">Asistentes en la última actividad</div>
+                    </div>
+                    
+                    <h2 class="section-title">Servicios del Último Domingo</h2>
+                    
+                    <div class="services-grid" id="lastSundayServices">
+                        <!-- Los servicios del último domingo se generarán automáticamente -->
                     </div>
                     
                     <h2 class="section-title">Análisis de Asistencia</h2>
@@ -508,7 +559,7 @@
         
         <div class="impacto-footer">
             <p><i class="fas fa-church"></i> Impacto SPS - Sistema de Estadísticas</p>
-            <p style="opacity: 0.8; font-size: 0.9em; margin-top: 5px;">Datos actualizados al <?php echo date('d/m/Y'); ?></p>
+            <p style="opacity: 0.8; font-size: 0.9em; margin-top: 5px;">Datos actualizados al <span id="currentDate"></span></p>
         </div>
     </div>
 
@@ -643,9 +694,6 @@
             { date: '2025-09-21', service: '5pm', asistentes: 94, niños: 15, vehiculos_impacto: 48, vehiculos_lf: 0, total_vehiculos: 48 },
             { date: '2025-09-28', service: '9am', asistentes: 130, niños: 0, vehiculos_impacto: 62, vehiculos_lf: 20, total_vehiculos: 82 }
         ];
-
-        // [El resto del código JavaScript permanece igual que en la versión anterior...]
-        // Solo cambia la parte del CSS y HTML para usar los colores correctos
 
         // Combinar datos históricos con datos locales
         let attendanceData = JSON.parse(localStorage.getItem('churchAttendance')) || [];
@@ -856,6 +904,83 @@
             };
         }
 
+        // Mostrar servicios del último domingo
+        function updateLastSundayServices() {
+            const servicesGrid = document.getElementById('lastSundayServices');
+            servicesGrid.innerHTML = '';
+            
+            // Encontrar el último domingo con datos
+            const sundayServices = ['9am', '11am', '5pm'];
+            const lastSunday = findLastSundayWithData();
+            
+            if (!lastSunday) {
+                servicesGrid.innerHTML = '<p style="text-align: center; color: #718096;">No hay datos del último domingo</p>';
+                return;
+            }
+            
+            sundayServices.forEach(service => {
+                const serviceData = lastSunday.services[service];
+                if (serviceData) {
+                    const serviceCard = document.createElement('div');
+                    serviceCard.className = 'service-card';
+                    
+                    serviceCard.innerHTML = `
+                        <div class="service-time">${getServiceName(service)}</div>
+                        <div class="service-date">${formatDate(lastSunday.date)}</div>
+                        <div class="service-attendance">${serviceData.asistentes}</div>
+                        <div class="service-vehicles">
+                            <i class="fas fa-car"></i> ${serviceData.total_vehiculos} vehículos
+                            ${serviceData.vehiculos_lf > 0 ? `(${serviceData.vehiculos_lf} LF)` : ''}
+                        </div>
+                    `;
+                    
+                    servicesGrid.appendChild(serviceCard);
+                }
+            });
+        }
+
+        function findLastSundayWithData() {
+            // Agrupar datos por fecha
+            const dataByDate = {};
+            attendanceData.forEach(item => {
+                if (!dataByDate[item.date]) {
+                    dataByDate[item.date] = {
+                        date: item.date,
+                        services: {}
+                    };
+                }
+                dataByDate[item.date].services[item.service] = item;
+            });
+            
+            // Ordenar fechas de más reciente a más antigua
+            const sortedDates = Object.keys(dataByDate).sort().reverse();
+            
+            // Encontrar el último domingo que tenga los 3 servicios
+            for (const date of sortedDates) {
+                const dayData = dataByDate[date];
+                const services = dayData.services;
+                
+                // Verificar si es domingo y tiene los 3 servicios principales
+                const dateObj = new Date(date);
+                if (dateObj.getDay() === 0 && services['9am'] && services['11am'] && services['5pm']) {
+                    return dayData;
+                }
+            }
+            
+            return null;
+        }
+
+        function getServiceName(serviceCode) {
+            const serviceNames = {
+                '9am': '9:00 AM',
+                '11am': '11:00 AM',
+                '5pm': '5:00 PM',
+                'cena_amor': 'Cena de Amor',
+                'especial': 'Servicio Especial'
+            };
+            return serviceNames[serviceCode] || serviceCode;
+        }
+
         // Actualizar estadísticas rápidas
         function updateQuickStats() {
             const monthlyData = processMonthlyData();
@@ -891,8 +1016,6 @@
             `;
         }
 
-        // [El resto del código JavaScript permanece igual...]
-
         // Manejar envío del formulario
         document.getElementById('attendanceForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -917,6 +1040,7 @@
             updateQuickStats();
             updateTrendAnalysis();
             updateHistoricalTable();
+            updateLastSundayServices();
             
             // Limpiar formulario
             this.reset();
@@ -1087,8 +1211,13 @@
             updateQuickStats();
             updateTrendAnalysis();
             updateHistoricalTable();
+            updateLastSundayServices();
             document.getElementById('date').valueAsDate = new Date();
+            
+            // Mostrar fecha actual en el footer
+            const now = new Date();
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES');
         });
     </script>
 </body>
-    </html>
+</html>
