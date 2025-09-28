@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estadísticas de Asistencia - Impacto SPS</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: #34495e;
+            padding: 0;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .nav-tab.active {
+            background: #2c3e50;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .form-section, .charts-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .comparison {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .data-table th, .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .export-btn {
+            background: #28a745;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Estadísticas de Asistencia</h1>
+            <p class="subtitle">Iglesia Impacto SPS - Datos Reales desde Enero 2025</p>
+        </header>
+        
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-tab="dashboard">Dashboard</div>
+            <div class="nav-tab" data-tab="registro">Registrar Datos</div>
+            <div class="nav-tab" data-tab="historico">Datos Históricos</div>
+        </div>
+        
+        <div class="tab-content active" id="dashboard">
+            <div class="main-content">
+                <section class="charts-section">
+                    <h2>Análisis de Asistencia</h2>
+                    
+                    <div class="stats-grid" id="quickStats">
+                        <!-- Las estadísticas se generarán automáticamente -->
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>Asistencia por Culto - Últimas 8 Semanas</h3>
+                        <canvas id="weeklyChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>Comparativo Mensual</h3>
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>Evolución de Vehículos</h3>
+                        <canvas id="vehiclesChart"></canvas>
+                    </div>
+                    
+                    <div class="comparison">
+                        <h3>📈 Tendencia Actual</h3>
+                        <p id="trendMessage">Cargando análisis...</p>
+                    </div>
+                </section>
+                
+                <section class="charts-section">
+                    <h2>Métricas Detalladas</h2>
+                    
+                    <div class="chart-container">
+                        <h3>Distribución por Horario</h3>
+                        <canvas id="serviceDistributionChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>Promedio de Asistencia por Día</h3>
+                        <canvas id="averageChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>Crecimiento vs Mes Anterior</h3>
+                        <div id="growthStats"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="registro">
+            <section class="form-section">
+                <h2>Ingresar Nuevos Datos</h2>
+                <form id="attendanceForm">
+                    <div class="form-group">
+                        <label for="date">Fecha:</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="serviceType">Tipo de Servicio:</label>
+                        <select id="serviceType" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="9am">Domingo 9:00 AM</option>
+                            <option value="11am">Domingo 11:00 AM</option>
+                            <option value="5pm">Domingo 5:00 PM</option>
+                            <option value="cena_amor">Cena de Amor</option>
+                            <option value="especial">Servicio Especial</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="asistentes">Total de Asistentes:</label>
+                        <input type="number" id="asistentes" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="niños">Niños (si aplica):</label>
+                        <input type="number" id="niños" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehiculos_impacto">Vehículos Impacto:</label>
+                        <input type="number" id="vehiculos_impacto" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehiculos_lf">Vehículos Little Feet:</label>
+                        <input type="number" id="vehiculos_lf" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ofrenda">Ofrenda (Lps):</label>
+                        <input type="number" id="ofrenda" min="0" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notas">Notas Adicionales:</label>
+                        <input type="text" id="notas" placeholder="Observaciones importantes...">
+                    </div>
+                    
+                    <button type="submit">Guardar Registro</button>
+                </form>
+            </section>
+        </div>
+        
+        <div class="tab-content" id="historico">
+            <section class="form-section">
+                <h2>Datos Históricos Completos</h2>
+                <p>Base de datos extraída del chat de WhatsApp (Enero 2025 - Septiembre 2025)</p>
+                
+                <div class="chart-container">
+                    <h3>Resumen de Todos los Registros</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="historicalData">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Servicio</th>
+                                    <th>Asistentes</th>
+                                    <th>Niños</th>
+                                    <th>Vehículos Total</th>
+                                    <th>Vehículos LF</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historicalTableBody">
+                                <!-- Los datos se llenarán automáticamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="export-btn" onclick="exportToCSV()">Exportar a CSV</button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        // DATOS REALES EXTRAÍDOS DEL CHAT DE WHATSAPP
+        const historicalData = [
+            // Enero 2025
+            { date: '2025-01-12', service: '9am', asistentes: 135, niños: 0, vehiculos_impacto: 66, vehiculos_lf: 16, total_vehiculos: 82 },
+            { date: '2025-01-12', service: '11am', asistentes: 147, niños: 0, vehiculos_impacto: 66, vehiculos_lf: 15, total_vehiculos: 81 },
+            { date: '2025-01-12', service: '5pm', asistentes: 82, niños: 16, vehiculos_impacto: 41, vehiculos_lf: 0, total_vehiculos: 41 },
+            { date: '2025-01-19', service: '9am', asistentes: 151, niños: 0, vehiculos_impacto: 67, vehiculos_lf: 12, total_vehiculos: 79 },
+            { date: '2025-01-19', service: '11am', asistentes: 180, niños: 0, vehiculos_impacto: 81, vehiculos_lf: 23, total_vehiculos: 104 },
+            { date: '2025-01-19', service: '5pm', asistentes: 73, niños: 8, vehiculos_impacto: 48, vehiculos_lf: 0, total_vehiculos: 48 },
+            { date: '2025-01-26', service: '9am', asistentes: 138, niños: 0, vehiculos_impacto: 70, vehiculos_lf: 26, total_vehiculos: 96 },
+            { date: '2025-01-26', service: '11am', asistentes: 181, niños: 0, vehiculos_impacto: 109, vehiculos_lf: 28, total_vehiculos: 137 },
+            { date: '2025-01-26', service: '5pm', asistentes: 80, niños: 9, vehiculos_impacto: 42, vehiculos_lf: 0, total_vehiculos: 42 },
+            
+            // Febrero 2025
+            { date: '2025-02-09', service: '9am', asistentes: 114, niños: 0, vehiculos_impacto: 61, vehiculos_lf: 17, total_vehiculos: 78 },
+            { date: '2025-02-09', service: '11am', asistentes: 155, niños: 0, vehiculos_impacto: 73, vehiculos_lf: 23, total_vehiculos: 96 },
+            { date: '2025-02-09', service: '5pm', asistentes: 89, niños: 14, vehiculos_impacto: 51, vehiculos_lf: 0, total_vehiculos: 51 },
+            { date: '2025-02-16', service: '9am', asistentes: 142, niños: 0, vehiculos_impacto: 70, vehiculos_lf: 19, total_vehiculos: 89 },
+            { date: '2025-02-16', service: '11am', asistentes: 160, niños: 0, vehiculos_impacto: 76, vehiculos_lf: 24, total_vehiculos: 100 },
+            { date: '2025-02-16', service: '5pm', asistentes: 85, niños: 15, vehiculos_impacto: 54, vehiculos_lf: 0, total_vehiculos: 54 },
+            { date: '2025-02-23', service: '9am', asistentes: 147, niños: 0, vehiculos_impacto: 60, vehiculos_lf: 22, total_vehiculos: 82 },
+            { date: '2025-02-23', service: '11am', asistentes: 171, niños: 0, vehiculos_impacto: 83, vehiculos_lf: 25, total_vehiculos: 108 },
+            { date: '2025-02-23', service: '5pm', asistentes: 88, niños: 5, vehiculos_impacto: 45, vehiculos_lf: 0, total_vehiculos: 45 },
+            
+            // Marzo 2025
+            { date: '2025-03-02', service: '9am', asistentes: 96, niños: 0, vehiculos_impacto: 56, vehiculos_lf: 14, total_vehiculos: 70 },
+            { date: '2025-03-02', service: '11am', asistentes: 166, niños: 0, vehiculos_impacto: 95, vehiculos_lf: 0, total_vehiculos: 95 },
+            { date: '2025-03-02', service: '5pm', asistentes: 79, niños: 12, vehiculos_impacto: 42, vehiculos_lf: 0, total_vehiculos: 42 },
+            { date: '2025-03-09', service: '9am', asistentes: 112, niños: 0, vehiculos_impacto: 53, vehiculos_lf: 12, total_vehiculos: 65 },
+            { date: '2025-03-09', service: '11am', asistentes: 145, niños: 0, vehiculos_impacto: 67, vehiculos_lf: 21, total_vehiculos: 88 },
+            { date: '2025-03-09', service: '5pm', asistentes: 67, niños: 11, vehiculos_impacto: 37, vehiculos_lf: 0, total_vehiculos: 37 },
+            { date: '2025-03-16', service: '9am', asistentes: 138, niños: 0, vehiculos_impacto: 60, vehiculos_lf: 18, total_vehiculos: 78 },
+            { date: '2025-03-16', service: '11am', asistentes: 209, niños: 0, vehiculos_impacto: 80, vehiculos_lf: 26, total_vehiculos: 106 },
+            { date: '2025-03-16', service: '5pm', asistentes: 75, niños: 7, vehiculos_impacto: 44, vehiculos_lf: 0, total_vehiculos: 44 },
+            { date: '2025-03-23', service: '9am', asistentes: 145, niños: 0, vehiculos_impacto: 70, vehiculos_lf: 16, total_vehiculos: 86 },
+            { date: '2025-03-23', service: '11am', asistentes: 173, niños: 0, vehiculos_impacto: 85, vehiculos_lf: 28, total_vehiculos: 113 },
+            { date: '2025-03-23', service: '5pm', asistentes: 75, niños: 5, vehiculos_impacto: 46, vehiculos_lf: 0, total_vehiculos: 46 },
+            { date: '2025-03-30', service: '9am', asistentes: 158, niños: 0, vehiculos_impacto: 68, vehiculos_lf: 13, total_vehiculos: 81 },
+            { date: '2025-03-30', service: '11am', asistentes: 189, niños: 0, vehiculos_impacto: 81, vehiculos_lf: 16, total_vehiculos: 97 },
+            { date: '2025-03-30', service: '5pm', asistentes: 70, niños: 10, vehiculos_impacto: 40, vehiculos_lf: 0, total_vehiculos: 40 },
+            
+            // Abril 2025
+            { date: '2025-04-06', service: '9am', asistentes: 154, niños: 0, vehiculos_impacto: 70, vehiculos_lf: 17, total_vehiculos: 87 },
+            { date: '2025-04-06', service: '11am', asistentes: 182, niños: 0, vehiculos_impacto: 78, vehiculos_lf: 29, total_vehiculos: 107 },
+            { date: '2025-04-06', service: '5pm', asistentes: 89, niños: 12, vehiculos_impacto: 48, vehiculos_lf: 0, total_vehiculos: 48 },
+            { date: '2025-04-13', service: '9am', asistentes: 145, niños: 0, vehiculos_impacto: 63, vehiculos_lf: 19, total_vehiculos: 82 },
+            { date: '2025-04-13', service: '11am', asistentes: 138, niños: 0, vehiculos_impacto: 69, vehiculos_lf: 18, total_vehiculos: 87 },
+            { date: '2025-04-13', service: '5pm', asistentes: 81, niños: 13, vehiculos_impacto: 44, vehiculos_lf: 0, total_vehiculos: 44 },
+            { date: '2025-04-18', service: 'cena_amor', asistentes: 159, niños: 33, vehiculos_impacto: 69, vehiculos_lf: 0, total_vehiculos: 69 },
+            { date: '2025-04-20', service: '9am', asistentes: 158, niños: 0, vehiculos_impacto: 80, vehiculos_lf: 0, total_vehiculos: 80 },
+            { date: '2025-04-20', service: '11am', asistentes: 0, niños: 0, vehiculos_impacto: 0, vehiculos_lf: 0, total_vehiculos: 0 }, // Datos incompletos
+            { date: '2025-04-20', service: '5pm', asistentes: 62, niños: 12, vehiculos_impacto: 35, vehiculos_lf: 0, total_vehiculos: 35 },
+            { date: '2025-04-27', service: '9am', asistentes: 162, niños: 0, vehiculos_impacto: 70, vehiculos_lf: 15, total_vehiculos: 85 },
+            { date: '2025-04-27', service: '11am', asistentes: 197, niños: 0, vehiculos_impacto: 84, vehiculos_lf: 26, total_vehiculos: 110 },
+            { date: '2025-04-27', service: '5pm', asistentes: 89, niños: 14, vehiculos_impacto: 42, vehiculos_lf: 0, total_vehiculos: 42 },
+            
+            // Mayo 2025
+            { date: '2025-05-04', service: '9am', asistentes: 167, niños: 0, vehiculos_impacto: 64, vehiculos_lf: 14, total_vehiculos: 78 },
+            { date: '2025-05-04', service: '11am', asistentes: 187, niños: 0, vehiculos_impacto: 78, vehiculos_lf: 34, total_vehiculos: 112 },
+            { date: '2025-05-04', service: '5pm', asistentes: 90, niños: 13, vehiculos_impacto: 44, vehiculos_lf: 0, total_vehiculos: 44 },
+            { date: '2025-05-11', service: '9am', asistentes: 135, niños: 0, vehiculos_impacto: 73, vehiculos_lf: 13, total_vehiculos: 86 },
+            { date: '2025-05-11', service: '11am', asistentes: 168, niños: 0, vehiculos_impacto: 72, vehiculos_lf: 20, total_vehiculos: 92 },
+            { date: '2025-05-11', service: '5pm', asistentes: 46, niños: 7, vehiculos_impacto: 25, vehiculos_lf: 0, total_vehiculos: 25 },
+            { date: '2025-05-18', service: '9am', asistentes: 149, niños: 0, vehiculos_impacto: 65, vehiculos_lf: 17, total_vehiculos: 82 },
+            { date: '2025-05-18', service: '11am', asistentes: 165, niños: 0, vehiculos_impacto: 82, vehiculos_lf: 24, total_vehiculos: 106 },
+            { date: '2025-05-18', service: '5pm', asistentes: 86, niños: 15, vehiculos_impacto: 48, vehiculos_lf: 0, total_vehiculos: 48 },
+            { date: '2025-05-25', service: '9am', asistentes: 156, niños: 0, vehiculos_impacto: 62, vehiculos_lf: 16, total_vehiculos: 78 },
+            { date: '2025-05-25', service: '11am', asistentes: 200, niños: 5, vehiculos_impacto: 80, vehiculos_lf: 26, total_vehiculos: 106 },
+            { date: '2025-05-25', service: '5pm', asistentes: 101, niños: 14, vehiculos_impacto: 50, vehiculos_lf: 0, total_vehiculos: 50 },
+            
+            // Junio 2025
+            { date: '2025-06-01', service: '9am', asistentes: 116, niños: 0, vehiculos_impacto: 69, vehiculos_lf: 22, total_vehiculos: 91 },
+            { date: '2025-06-01', service: '11am', asistentes: 166, niños: 0, vehiculos_impacto: 82, vehiculos_lf: 31, total_vehiculos: 113 },
+            { date: '2025-06-01', service: '5pm', asistentes: 84, niños: 8, vehiculos_impacto: 46, vehiculos_lf: 0, total_vehiculos: 46 },
+            { date: '2025-06-08', service: '9am', asistentes: 155, niños: 0, vehiculos_impacto: 75, vehiculos_lf: 21, total_vehiculos: 96 },
+            { date: '2025-06-08', service: '11am', asistentes: 201, niños: 0, vehiculos_impacto: 83, vehiculos_lf: 27, total_vehiculos: 110 },
+            { date: '2025-06-08', service: '5pm', asistentes: 88, niños: 17, vehiculos_impacto: 51, vehiculos_lf: 0, total_vehiculos: 51 },
+            { date: '2025-06-15', service: '9am', asistentes: 121, niños: 0, vehiculos_impacto: 61, vehiculos_lf: 20, total_vehiculos: 81 },
+            { date: '2025-06-15', service: '11am', asistentes: 154, niños: 0, vehiculos_impacto: 75, vehiculos_lf: 21, total_vehiculos: 96 },
+            { date: '2025-06-15', service: '5pm', asistentes: 66, niños: 10, vehiculos_impacto: 45, vehiculos_lf: 0, total_vehiculos: 45 },
+            { date: '2025-06-22', service: '9am', asistentes: 172, niños: 0, vehiculos_impacto: 96, vehiculos_lf: 0, total_vehiculos: 96 },
+            { date: '2025-06-22', service: '11am', asistentes: 190, niños: 0, vehiculos_impacto: 101, vehiculos_lf: 0, total_vehiculos: 101 },
+            { date: '2025-06-22', service: '5pm', asistentes: 79, niños: 18, vehiculos_impacto: 38, vehiculos_lf: 0, total_vehiculos: 38 },
+            { date: '2025-06-29', service: '9am', asistentes: 112, niños: 0, vehiculos_impacto: 60, vehiculos_lf: 17, total_vehiculos: 77 },
+            { date: '2025-06-29', service: '11am', asistentes: 162, niños: 0, vehiculos_impacto: 74, vehiculos_lf: 21, total_vehiculos: 95 },
+            { date: '2025-06-29', service: '5pm', asistentes: 80, niños: 13, vehiculos_impacto: 49, vehiculos_lf: 0, total_vehiculos: 49 },
+            
+            // Julio 2025
+            { date: '2025-07-06', service: '9am', asistentes: 150, niños: 5, vehiculos_impacto: 57, vehiculos_lf: 18, total_vehiculos: 75 },
+            { date: '2025-07-06', service: '11am', asistentes: 153, niños: 2, vehiculos_impacto: 74, vehiculos_lf: 26, total_vehiculos: 100 },
+            { date: '2025-07-06', service: '5pm', asistentes: 61, niños: 15, vehiculos_impacto: 34, vehiculos_lf: 0, total_vehiculos: 34 },
+            { date: '2025-07-13', service: '9am', asistentes: 114, niños: 0, vehiculos_impacto: 56, vehiculos_lf: 18, total_vehiculos: 74 },
+            { date: '2025-07-13', service: '11am', asistentes: 145, niños: 0, vehiculos_impacto: 70, vehiculos_lf: 26, total_vehiculos: 96 },
+            { date: '2025-07-13', service: '5pm', asistentes: 56, niños: 10, vehiculos_impacto: 40, vehiculos_lf: 0, total_vehiculos: 40 },
+            { date: '2025-07-20', service: '9am', asistentes: 148, niños: 0, vehiculos_impacto: 68, vehiculos_lf: 13, total_vehiculos: 81 },
+            { date: '2025-07-20', service: '11am', asistentes: 182, niños: 0, vehiculos_impacto: 79, vehiculos_lf: 7, total_vehiculos: 86 },
+            { date: '2025-07-20', service: '5pm', asistentes: 94, niños: 12, vehiculos_impacto: 43, vehiculos_lf: 0, total_vehiculos: 43 },
+            { date: '2025-07-27', service: '9am', asistentes: 144, niños: 0, vehiculos_impacto: 63, vehiculos_lf: 24, total_vehiculos: 87 },
+            { date: '2025-07-27', service: '11am', asistentes: 192, niños: 0, vehiculos_impacto: 79, vehiculos_lf: 30, total_vehiculos: 109 },
+            { date: '2025-07-27', service: '7pm', asistentes: 241, niños: 40, vehiculos_impacto: 84, vehiculos_lf: 12, total_vehiculos: 96 },
+            
+            // Agosto 2025
+            { date: '2025-08-03', service: '9am', asistentes: 104, niños: 0, vehiculos_impacto: 49, vehiculos_lf: 19, total_vehiculos: 68 },
+            { date: '2025-08-03', service: '11am', asistentes: 163, niños: 0, vehiculos_impacto: 42, vehiculos_lf: 15, total_vehiculos: 57 },
+            { date: '2025-08-03', service: '5pm', asistentes: 122, niños: 15, vehiculos_impacto: 60, vehiculos_lf: 0, total_vehiculos: 60 },
+            { date: '2025-08-10', service: '9am', asistentes: 110, niños: 0, vehiculos_impacto: 64, vehiculos_lf: 14, total_vehiculos: 78 },
+            { date: '2025-08-10', service: '11am', asistentes: 147, niños: 0, vehiculos_impacto: 68, vehiculos_lf: 18, total_vehiculos: 86 },
+            { date: '2025-08-10', service: '5pm', asistentes: 82, niños: 9, vehiculos_impacto: 48, vehiculos_lf: 0, total_vehiculos: 48 },
+            { date: '2025-08-17', service: '9am', asistentes: 174, niños: 0, vehiculos_impacto: 91, vehiculos_lf: 0, total_vehiculos: 91 },
+            { date: '2025-08-17', service: '11am', asistentes: 219, niños: 0, vehiculos_impacto: 83, vehiculos_lf: 43, total_vehiculos: 126 },
+            { date: '2025-08-17', service: '5pm', asistentes: 120, niños: 22, vehiculos_impacto: 54, vehiculos_lf: 0, total_vehiculos: 54 },
+            { date: '2025-08-24', service: '9am', asistentes: 156, niños: 0, vehiculos_impacto: 59, vehiculos_lf: 18, total_vehiculos: 77 },
+            { date: '2025-08-24', service: '11am', asistentes: 190, niños: 0, vehiculos_impacto: 74, vehiculos_lf: 23, total_vehiculos: 97 },
+            { date: '2025-08-24', service: '5pm', asistentes: 110, niños: 16, vehiculos_impacto: 54, vehiculos_lf: 0, total_vehiculos: 54 },
+            { date: '2025-08-31', service: '9am', asistentes: 99, niños: 0, vehiculos_impacto: 44, vehiculos_lf: 9, total_vehiculos: 53 },
+            { date: '2025-08-31', service: '11am', asistentes: 137, niños: 5, vehiculos_impacto: 78, vehiculos_lf: 11, total_vehiculos: 89 },
+            { date: '2025-08-31', service: '5pm', asistentes: 67, niños: 8, vehiculos_impacto: 30, vehiculos_lf: 0, total_vehiculos: 30 },
+            
+            // Septiembre 2025
+            { date: '2025-09-07', service: '9am', asistentes: 143, niños: 0, vehiculos_impacto: 69, vehiculos_lf: 19, total_vehiculos: 88 },
+            { date: '2025-09-07', service: '11am', asistentes: 180, niños: 0, vehiculos_impacto: 76, vehiculos_lf: 30, total_vehiculos: 106 },
+            { date: '2025-09-07', service: '5pm', asistentes: 240, niños: 55, vehiculos_impacto: 80, vehiculos_lf: 32, total_vehiculos: 112 },
+            { date: '2025-09-14', service: '9am', asistentes: 135, niños: 0, vehiculos_impacto: 67, vehiculos_lf: 17, total_vehiculos: 84 },
+            { date: '2025-09-14', service: '11am', asistentes: 154, niños: 0, vehiculos_impacto: 70, vehiculos_lf: 25, total_vehiculos: 95 },
+            { date: '2025-09-14', service: '5pm', asistentes: 82, niños: 16, vehiculos_impacto: 36, vehiculos_lf: 0, total_vehiculos: 36 },
+            { date: '2025-09-21', service: '9am', asistentes: 139, niños: 0, vehiculos_impacto: 70, vehiculos_lf: 16, total_vehiculos: 86 },
+            { date: '2025-09-21', service: '11am', asistentes: 214, niños: 0, vehiculos_impacto: 83, vehiculos_lf: 28, total_vehiculos: 111 },
+            { date: '2025-09-21', service: '5pm', asistentes: 94, niños: 15, vehiculos_impacto: 48, vehiculos_lf: 0, total_vehiculos: 48 },
+            { date: '2025-09-28', service: '9am', asistentes: 130, niños: 0, vehiculos_impacto: 62, vehiculos_lf: 20, total_vehiculos: 82 }
+        ];
+
+        // Combinar datos históricos con datos locales
+        let attendanceData = JSON.parse(localStorage.getItem('churchAttendance')) || [];
+        // Agregar datos históricos solo si no existen ya
+        historicalData.forEach(histItem => {
+            const exists = attendanceData.some(item => 
+                item.date === histItem.date && item.service === histItem.service
+            );
+            if (!exists) {
+                attendanceData.push(histItem);
+            }
+        });
+
+        // Ordenar por fecha
+        attendanceData.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        // Inicializar gráficos
+        let weeklyChart, monthlyChart, vehiclesChart, serviceDistributionChart, averageChart;
+
+        function initCharts() {
+            // Procesar datos para gráficos
+            const monthlyData = processMonthlyData();
+            const weeklyData = processWeeklyData();
+            const serviceData = processServiceData();
+            const averageData = processAverageData();
+
+            // Gráfico semanal
+            const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+            weeklyChart = new Chart(weeklyCtx, {
+                type: 'line',
+                data: {
+                    labels: weeklyData.labels,
+                    datasets: [
+                        {
+                            label: '9:00 AM',
+                            data: weeklyData.data9am,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: '11:00 AM',
+                            data: weeklyData.data11am,
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: '5:00 PM',
+                            data: weeklyData.data5pm,
+                            borderColor: '#ffc107',
+                            backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Asistencia Últimas 8 Semanas'
+                        }
+                    }
+                }
+            });
+
+            // Gráfico mensual
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            monthlyChart = new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: monthlyData.labels,
+                    datasets: [
+                        {
+                            label: 'Total Asistentes',
+                            data: monthlyData.totals,
+                            backgroundColor: 'rgba(102, 126, 234, 0.8)'
+                        },
+                        {
+                            label: 'Promedio por Servicio',
+                            data: monthlyData.averages,
+                            backgroundColor: 'rgba(118, 75, 162, 0.8)'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+
+            // Gráfico de vehículos
+            const vehiclesCtx = document.getElementById('vehiclesChart').getContext('2d');
+            vehiclesChart = new Chart(vehiclesCtx, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.labels,
+                    datasets: [
+                        {
+                            label: 'Vehículos Totales',
+                            data: monthlyData.vehicles,
+                            borderColor: '#dc3545',
+                            backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Vehículos Little Feet',
+                            data: monthlyData.vehiclesLF,
+                            borderColor: '#17a2b8',
+                            backgroundColor: 'rgba(23, 162, 184, 0.1)',
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+
+            // Gráfico de distribución por servicio
+            const serviceCtx = document.getElementById('serviceDistributionChart').getContext('2d');
+            serviceDistributionChart = new Chart(serviceCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['9:00 AM', '11:00 AM', '5:00 PM', 'Otros'],
+                    datasets: [{
+                        data: [serviceData.total9am, serviceData.total11am, serviceData.total5pm, serviceData.totalOther],
+                        backgroundColor: ['#667eea', '#28a745', '#ffc107', '#6c757d']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de promedios
+            const averageCtx = document.getElementById('averageChart').getContext('2d');
+            averageChart = new Chart(averageCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['9:00 AM', '11:00 AM', '5:00 PM'],
+                    datasets: [{
+                        label: 'Promedio de Asistentes',
+                        data: [averageData.avg9am, averageData.avg11am, averageData.avg5pm],
+                        backgroundColor: ['#667eea', '#28a745', '#ffc107']
+                    }]
+                },
+                options: {
+                    responsive: true
+                }
+            });
+        }
+
+        function processMonthlyData() {
+            const months = {};
+            
+            attendanceData.forEach(item => {
+                if (!item.date) return;
+                
+                const date = new Date(item.date);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const monthName = date.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+                
+                if (!months[monthKey]) {
+                    months[monthKey] = {
+                        name: monthName,
+                        total: 0,
+                        count: 0,
+                        vehicles: 0,
+                        vehiclesLF: 0
+                    };
+                }
+                
+                months[monthKey].total += item.asistentes || 0;
+                months[monthKey].count += 1;
+                months[monthKey].vehicles += item.total_vehiculos || 0;
+                months[monthKey].vehiclesLF += item.vehiculos_lf || 0;
+            });
+            
+            const sortedMonths = Object.keys(months).sort();
+            const labels = sortedMonths.map(key => months[key].name);
+            const totals = sortedMonths.map(key => months[key].total);
+            const averages = sortedMonths.map(key => Math.round(months[key].total / months[key].count));
+            const vehicles = sortedMonths.map(key => months[key].vehicles);
+            const vehiclesLF = sortedMonths.map(key => months[key].vehiclesLF);
+            
+            return { labels, totals, averages, vehicles, vehiclesLF };
+        }
+
+        function processWeeklyData() {
+            // Obtener últimas 8 semanas
+            const last8Weeks = getLastNWeeks(8);
+            const labels = last8Weeks.map(week => `Sem ${week.week}`);
+            
+            const data9am = last8Weeks.map(week => week.data9am);
+            const data11am = last8Weeks.map(week => week.data11am);
+            const data5pm = last8Weeks.map(week => week.data5pm);
+            
+            return { labels, data9am, data11am, data5pm };
+        }
+
+        function getLastNWeeks(n) {
+            const weeks = [];
+            const today = new Date();
+            
+            for (let i = n-1; i >= 0; i--) {
+                const weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - (today.getDay() + 7 * i));
+                
+                const weekData = {
+                    week: i + 1,
+                    data9am: 0,
+                    data11am: 0,
+                    data5pm: 0
+                };
+                
+                // Sumar datos de esa semana
+                attendanceData.forEach(item => {
+                    if (!item.date) return;
+                    
+                    const itemDate = new Date(item.date);
+                    const diffTime = Math.abs(itemDate - weekStart);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    if (diffDays <= 7) {
+                        if (item.service === '9am') weekData.data9am += item.asistentes || 0;
+                        if (item.service === '11am') weekData.data11am += item.asistentes || 0;
+                        if (item.service === '5pm') weekData.data5pm += item.asistentes || 0;
+                    }
+                });
+                
+                weeks.push(weekData);
+            }
+            
+            return weeks;
+        }
+
+        function processServiceData() {
+            let total9am = 0, total11am = 0, total5pm = 0, totalOther = 0;
+            
+            attendanceData.forEach(item => {
+                if (item.service === '9am') total9am += item.asistentes || 0;
+                else if (item.service === '11am') total11am += item.asistentes || 0;
+                else if (item.service === '5pm') total5pm += item.asistentes || 0;
+                else totalOther += item.asistentes || 0;
+            });
+            
+            return { total9am, total11am, total5pm, totalOther };
+        }
+
+        function processAverageData() {
+            let sum9am = 0, count9am = 0;
+            let sum11am = 0, count11am = 0;
+            let sum5pm = 0, count5pm = 0;
+            
+            attendanceData.forEach(item => {
+                if (item.service === '9am' && item.asistentes) {
+                    sum9am += item.asistentes;
+                    count9am++;
+                } else if (item.service === '11am' && item.asistentes) {
+                    sum11am += item.asistentes;
+                    count11am++;
+                } else if (item.service === '5pm' && item.asistentes) {
+                    sum5pm += item.asistentes;
+                    count5pm++;
+                }
+            });
+            
+            return {
+                avg9am: count9am ? Math.round(sum9am / count9am) : 0,
+                avg11am: count11am ? Math.round(sum11am / count11am) : 0,
+                avg5pm: count5pm ? Math.round(sum5pm / count5pm) : 0
+            };
+        }
+
+        // Actualizar estadísticas rápidas
+        function updateQuickStats() {
+            const totalAsistentes = attendanceData.reduce((sum, item) => sum + (item.asistentes || 0), 0);
+            const totalServicios = attendanceData.length;
+            const totalVehiculos = attendanceData.reduce((sum, item) => sum + (item.total_vehiculos || 0), 0);
+            const promedioAsistencia = Math.round(totalAsistentes / totalServicios);
+            
+            // Cálculo de crecimiento
+            const currentMonth = new Date().getMonth();
+            const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const currentYear = new Date().getFullYear();
+            const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+            
+            const currentMonthData = attendanceData.filter(item => {
+                const date = new Date(item.date);
+                return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+            });
+            
+            const previousMonthData = attendanceData.filter(item => {
+                const date = new Date(item.date);
+                return date.getMonth() === previousMonth && date.getFullYear() === previousYear;
+            });
+            
+            const currentMonthTotal = currentMonthData.reduce((sum, item) => sum + (item.asistentes || 0), 0);
+            const previousMonthTotal = previousMonthData.reduce((sum, item) => sum + (item.asistentes || 0), 0);
+            
+            let growthPercentage = 0;
+            if (previousMonthTotal > 0) {
+                growthPercentage = ((currentMonthTotal - previousMonthTotal) / previousMonthTotal * 100).toFixed(1);
+            }
+
+            document.getElementById('quickStats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-number">${totalAsistentes.toLocaleString()}</div>
+                    <div class="stat-label">Total Asistentes</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${totalServicios}</div>
+                    <div class="stat-label">Servicios Registrados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${promedioAsistencia}</div>
+                    <div class="stat-label">Promedio/Servicio</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">${totalVehiculos.toLocaleString()}</div>
+                    <div class="stat-label">Total Vehículos</div>
+                </div>
+            `;
+
+            // Actualizar estadísticas de crecimiento
+            const growthText = growthPercentage >= 0 ? 
+                `📈 <strong>+${growthPercentage}%</strong> vs mes anterior` : 
+                `📉 <strong>${growthPercentage}%</strong> vs mes anterior`;
+                
+            document.getElementById('growthStats').innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 2em; color: ${growthPercentage >= 0 ? '#28a745' : '#dc3545'}">
+                        ${growthPercentage >= 0 ? '↗️' : '↘️'} ${growthPercentage}%
+                    </div>
+                    <div style="color: #666; margin-top: 10px;">
+                        ${growthPercentage >= 0 ? 'Crecimiento' : 'Disminución'} vs mes anterior
+                    </div>
+                    <div style="margin-top: 15px; font-size: 0.9em;">
+                        <strong>${currentMonthTotal.toLocaleString()}</strong> este mes vs 
+                        <strong>${previousMonthTotal.toLocaleString()}</strong> mes anterior
+                    </div>
+                </div>
+            `;
+        }
+
+        // Manejar envío del formulario
+        document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newRecord = {
+                date: document.getElementById('date').value,
+                service: document.getElementById('serviceType').value,
+                asistentes: parseInt(document.getElementById('asistentes').value) || 0,
+                niños: parseInt(document.getElementById('niños').value) || 0,
+                vehiculos_impacto: parseInt(document.getElementById('vehiculos_impacto').value) || 0,
+                vehiculos_lf: parseInt(document.getElementById('vehiculos_lf').value) || 0,
+                total_vehiculos: parseInt(document.getElementById('vehiculos_impacto').value) + parseInt(document.getElementById('vehiculos_lf').value),
+                ofrenda: parseFloat(document.getElementById('ofrenda').value) || 0,
+                notas: document.getElementById('notas').value || ''
+            };
+            
+            attendanceData.push(newRecord);
+            localStorage.setItem('churchAttendance', JSON.stringify(attendanceData));
+            
+            // Actualizar gráficos y estadísticas
+            updateCharts();
+            updateQuickStats();
+            updateTrendAnalysis();
+            updateHistoricalTable();
+            
+            // Limpiar formulario
+            this.reset();
+            document.getElementById('date').valueAsDate = new Date();
+            alert('¡Datos guardados exitosamente!');
+        });
+
+        function updateCharts() {
+            // Destruir gráficos existentes
+            if (weeklyChart) weeklyChart.destroy();
+            if (monthlyChart) monthlyChart.destroy();
+            if (vehiclesChart) vehiclesChart.destroy();
+            if (serviceDistributionChart) serviceDistributionChart.destroy();
+            if (averageChart) averageChart.destroy();
+            
+            // Recrear gráficos con datos actualizados
+            initCharts();
+        }
+
+        function updateTrendAnalysis() {
+            if (attendanceData.length < 2) {
+                document.getElementById('trendMessage').textContent = 'Se necesitan más datos para el análisis';
+                return;
+            }
+            
+            // Análisis de las últimas 4 semanas vs las 4 semanas anteriores
+            const recentWeeks = getLastNWeeks(4);
+            const previousWeeks = getLastNWeeks(8).slice(0, 4); // Semanas 5-8
+            
+            const recentTotal = recentWeeks.reduce((sum, week) => 
+                sum + week.data9am + week.data11am + week.data5pm, 0);
+            const previousTotal = previousWeeks.reduce((sum, week) => 
+                sum + week.data9am + week.data11am + week.data5pm, 0);
+            
+            const trend = recentTotal > previousTotal ? 'aumentando' : 'disminuyendo';
+            const difference = Math.abs(recentTotal - previousTotal);
+            const percentage = previousTotal > 0 ? 
+                ((recentTotal - previousTotal) / previousTotal * 100).toFixed(1) : 0;
+            
+            document.getElementById('trendMessage').innerHTML = `
+                <strong>La asistencia está ${trend}</strong><br>
+                ${difference} personas ${trend === 'aumentando' ? 'más' : 'menos'} que el período anterior.
+                (${percentage}%)<br>
+                ${trend === 'aumentando' ? '🎉 ¡Buen trabajo!' : '💪 ¡Seguimos adelante!'}
+            `;
+        }
+
+        function updateHistoricalTable() {
+            const tbody = document.getElementById('historicalTableBody');
+            tbody.innerHTML = '';
+            
+            // Mostrar últimos 50 registros
+            const recentData = attendanceData.slice(-50).reverse();
+            
+            recentData.forEach(item => {
+                const row = document.createElement('tr');
+                const serviceNames = {
+                    '9am': '9:00 AM',
+                    '11am': '11:00 AM', 
+                    '5pm': '5:00 PM',
+                    'cena_amor': 'Cena Amor',
+                    'especial': 'Especial'
+                };
+                
+                row.innerHTML = `
+                    <td>${formatDate(item.date)}</td>
+                    <td>${serviceNames[item.service] || item.service}</td>
+                    <td>${item.asistentes || 0}</td>
+                    <td>${item.niños || 0}</td>
+                    <td>${item.total_vehiculos || 0}</td>
+                    <td>${item.vehiculos_lf || 0}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('es-ES');
+        }
+
+        function exportToCSV() {
+            let csv = 'Fecha,Servicio,Asistentes,Niños,Vehículos Total,Vehículos LF\n';
+            
+            attendanceData.forEach(item => {
+                const serviceNames = {
+                    '9am': '9:00 AM',
+                    '11am': '11:00 AM',
+                    '5pm': '5:00 PM',
+                    'cena_amor': 'Cena Amor',
+                    'especial': 'Especial'
+                };
+                
+                csv += `"${formatDate(item.date)}","${serviceNames[item.service] || item.service}",${item.asistentes || 0},${item.niños || 0},${item.total_vehiculos || 0},${item.vehiculos_lf || 0}\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', 'estadisticas_iglesia.csv');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // Navegación entre pestañas
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remover clase active de todas las pestañas
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Agregar clase active a la pestaña clickeada
+                this.classList.add('active');
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            updateQuickStats();
+            updateTrendAnalysis();
+            updateHistoricalTable();
+            document.getElementById('date').valueAsDate = new Date();
+        });
+    </script>
+</body>
+</html>
