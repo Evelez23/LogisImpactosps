@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estadísticas de Asistencia - Impacto SPS</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -13,19 +14,19 @@
         }
         
         :root {
-            --impacto-blue: #1e3a8a;
-            --impacto-light-blue: #3b82f6;
-            --impacto-green: #10b981;
-            --impacto-orange: #f59e0b;
-            --impacto-red: #ef4444;
-            --impacto-purple: #8b5cf6;
+            --impacto-primary: #1a365d;
+            --impacto-secondary: #2d3748;
+            --impacto-accent: #e53e3e;
+            --impacto-gold: #d69e2e;
+            --impacto-light: #f7fafc;
         }
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, var(--impacto-blue) 0%, var(--impacto-light-blue) 100%);
+            background: linear-gradient(135deg, var(--impacto-primary) 0%, var(--impacto-secondary) 100%);
             min-height: 100vh;
             padding: 15px;
+            color: #2d3748;
         }
         
         .container {
@@ -33,12 +34,12 @@
             margin: 0 auto;
             background: white;
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             overflow: hidden;
         }
         
         header {
-            background: var(--impacto-blue);
+            background: var(--impacto-primary);
             color: white;
             padding: 25px 20px;
             text-align: center;
@@ -54,33 +55,41 @@
         }
         
         .logo {
-            width: 50px;
-            height: 50px;
-            background: white;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--impacto-accent) 0%, var(--impacto-gold) 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            color: var(--impacto-blue);
-            font-size: 20px;
+            color: white;
+            font-size: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .church-name {
+            text-align: center;
         }
         
         h1 {
             font-size: 1.8em;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
+            color: white;
         }
         
         .subtitle {
             font-size: 1em;
             opacity: 0.9;
+            color: #e2e8f0;
         }
         
         .nav-tabs {
             display: flex;
-            background: var(--impacto-blue);
+            background: var(--impacto-secondary);
             padding: 0;
             flex-wrap: wrap;
+            border-bottom: 3px solid var(--impacto-accent);
         }
         
         .nav-tab {
@@ -96,8 +105,13 @@
         }
         
         .nav-tab.active {
-            background: var(--impacto-light-blue);
-            border-bottom: 3px solid white;
+            background: var(--impacto-primary);
+            border-bottom: 3px solid var(--impacto-gold);
+        }
+        
+        .nav-tab i {
+            margin-right: 8px;
+            font-size: 1.1em;
         }
         
         .tab-content {
@@ -138,10 +152,10 @@
         }
         
         .form-section, .charts-section {
-            background: #f8f9fa;
+            background: var(--impacto-light);
             padding: 20px;
             border-radius: 10px;
-            border: 1px solid #e9ecef;
+            border: 2px solid #e2e8f0;
         }
         
         .form-group {
@@ -152,25 +166,27 @@
             display: block;
             margin-bottom: 8px;
             font-weight: 600;
-            color: var(--impacto-blue);
+            color: var(--impacto-primary);
         }
         
         input, select {
             width: 100%;
             padding: 12px;
-            border: 2px solid #ddd;
+            border: 2px solid #cbd5e0;
             border-radius: 8px;
             font-size: 16px;
-            transition: border-color 0.3s;
+            transition: all 0.3s;
+            background: white;
         }
         
         input:focus, select:focus {
             outline: none;
-            border-color: var(--impacto-light-blue);
+            border-color: var(--impacto-accent);
+            box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
         }
         
         button {
-            background: linear-gradient(135deg, var(--impacto-blue) 0%, var(--impacto-light-blue) 100%);
+            background: linear-gradient(135deg, var(--impacto-accent) 0%, #c53030 100%);
             color: white;
             border: none;
             padding: 15px;
@@ -179,11 +195,13 @@
             font-weight: 600;
             cursor: pointer;
             width: 100%;
-            transition: transform 0.2s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
         }
         
         button:hover {
             transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(229, 62, 62, 0.4);
         }
         
         .chart-container {
@@ -193,6 +211,7 @@
             margin-bottom: 20px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             text-align: center;
+            border: 1px solid #e2e8f0;
         }
         
         .stats-grid {
@@ -208,27 +227,33 @@
             border-radius: 10px;
             text-align: center;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border-left: 4px solid var(--impacto-light-blue);
+            border-left: 4px solid var(--impacto-accent);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
         }
         
         .stat-number {
             font-size: 1.8em;
             font-weight: bold;
-            color: var(--impacto-blue);
+            color: var(--impacto-primary);
         }
         
         .stat-label {
             font-size: 0.85em;
-            color: #666;
+            color: #718096;
             margin-top: 5px;
         }
         
         .comparison {
-            background: #e8f4f8;
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
             padding: 20px;
             border-radius: 10px;
             margin-top: 20px;
             text-align: center;
+            border: 2px solid var(--impacto-accent);
         }
         
         .data-table {
@@ -236,44 +261,55 @@
             border-collapse: collapse;
             margin-top: 20px;
             font-size: 0.9em;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            overflow: hidden;
         }
         
         .data-table th, .data-table td {
-            padding: 10px;
+            padding: 12px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e2e8f0;
         }
         
         .data-table th {
-            background: var(--impacto-blue);
+            background: var(--impacto-primary);
             color: white;
             font-weight: 600;
         }
         
+        .data-table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+        
         .day-separator {
-            background-color: #f0f8ff;
+            background-color: var(--impacto-primary);
+            color: white;
             font-weight: bold;
-            color: var(--impacto-blue);
         }
         
         .export-btn {
-            background: var(--impacto-green);
+            background: linear-gradient(135deg, var(--impacto-gold) 0%, #b7791f 100%);
             margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(214, 158, 46, 0.3);
         }
         
         .highlight-card {
-            background: linear-gradient(135deg, var(--impacto-blue) 0%, var(--impacto-light-blue) 100%);
+            background: linear-gradient(135deg, var(--impacto-primary) 0%, var(--impacto-secondary) 100%);
             color: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 25px;
+            border-radius: 15px;
             text-align: center;
             margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            border: 2px solid var(--impacto-gold);
         }
         
         .highlight-number {
             font-size: 2.5em;
             font-weight: bold;
             margin-bottom: 10px;
+            color: var(--impacto-gold);
         }
         
         .highlight-label {
@@ -288,30 +324,57 @@
             font-size: 0.8em;
             font-weight: bold;
             margin-left: 8px;
+            color: white;
         }
         
-        .badge-9am { background: var(--impacto-blue); color: white; }
-        .badge-11am { background: var(--impacto-green); color: white; }
-        .badge-5pm { background: var(--impacto-orange); color: white; }
-        .badge-other { background: var(--impacto-purple); color: white; }
+        .badge-9am { background: var(--impacto-primary); }
+        .badge-11am { background: var(--impacto-accent); }
+        .badge-5pm { background: var(--impacto-gold); color: #1a365d; }
+        .badge-other { background: #718096; }
+        
+        .section-title {
+            color: var(--impacto-primary);
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 3px solid var(--impacto-gold);
+            padding-bottom: 10px;
+        }
+        
+        .impacto-footer {
+            background: var(--impacto-secondary);
+            color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            border-top: 3px solid var(--impacto-accent);
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <div class="logo-container">
-                <div class="logo">I</div>
-                <div>
-                    <h1>Impacto SPS</h1>
-                    <p class="subtitle">Sistema de Estadísticas de Asistencia</p>
+                <div class="logo">
+                    <i class="fas fa-church"></i>
+                </div>
+                <div class="church-name">
+                    <h1>IMPACTO SPS</h1>
+                    <p class="subtitle">Iglesia Cristiana</p>
                 </div>
             </div>
         </header>
         
         <div class="nav-tabs">
-            <div class="nav-tab active" data-tab="dashboard">Dashboard</div>
-            <div class="nav-tab" data-tab="registro">Registrar Datos</div>
-            <div class="nav-tab" data-tab="historico">Datos Históricos</div>
+            <div class="nav-tab active" data-tab="dashboard">
+                <i class="fas fa-chart-line"></i>Dashboard
+            </div>
+            <div class="nav-tab" data-tab="registro">
+                <i class="fas fa-edit"></i>Registrar
+            </div>
+            <div class="nav-tab" data-tab="historico">
+                <i class="fas fa-history"></i>Histórico
+            </div>
         </div>
         
         <div class="tab-content active" id="dashboard">
@@ -322,36 +385,36 @@
                         <div class="highlight-label">Asistentes en la última actividad</div>
                     </div>
                     
-                    <h2 style="text-align: center; color: var(--impacto-blue); margin-bottom: 20px;">Análisis de Asistencia</h2>
+                    <h2 class="section-title">Análisis de Asistencia</h2>
                     
                     <div class="stats-grid" id="quickStats">
                         <!-- Las estadísticas se generarán automáticamente -->
                     </div>
                     
                     <div class="chart-container">
-                        <h3>Promedio Mensual de Asistencia</h3>
+                        <h3><i class="fas fa-chart-bar"></i> Promedio Mensual de Asistencia</h3>
                         <canvas id="monthlyChart"></canvas>
                     </div>
                     
                     <div class="chart-container">
-                        <h3>Asistencia por Tipo de Servicio (Promedio)</h3>
+                        <h3><i class="fas fa-users"></i> Asistencia por Tipo de Servicio</h3>
                         <canvas id="averageChart"></canvas>
                     </div>
                 </section>
                 
                 <section class="charts-section">
                     <div class="chart-container">
-                        <h3>Distribución por Horario</h3>
+                        <h3><i class="fas fa-chart-pie"></i> Distribución por Horario</h3>
                         <canvas id="serviceDistributionChart"></canvas>
                     </div>
                     
                     <div class="chart-container">
-                        <h3>Evolución de Vehículos (Promedio Mensual)</h3>
+                        <h3><i class="fas fa-car"></i> Evolución de Vehículos</h3>
                         <canvas id="vehiclesChart"></canvas>
                     </div>
                     
                     <div class="comparison">
-                        <h3>📈 Tendencia Actual</h3>
+                        <h3><i class="fas fa-trending-up"></i> Tendencia Actual</h3>
                         <p id="trendMessage">Cargando análisis...</p>
                     </div>
                 </section>
@@ -360,15 +423,15 @@
         
         <div class="tab-content" id="registro">
             <section class="form-section">
-                <h2 style="text-align: center; color: var(--impacto-blue);">Ingresar Nuevos Datos</h2>
+                <h2 class="section-title">Ingresar Nuevos Datos</h2>
                 <form id="attendanceForm">
                     <div class="form-group">
-                        <label for="date">Fecha:</label>
+                        <label for="date"><i class="fas fa-calendar"></i> Fecha:</label>
                         <input type="date" id="date" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="serviceType">Tipo de Servicio:</label>
+                        <label for="serviceType"><i class="fas fa-clock"></i> Tipo de Servicio:</label>
                         <select id="serviceType" required>
                             <option value="">Seleccionar...</option>
                             <option value="9am">Domingo 9:00 AM</option>
@@ -380,47 +443,47 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="asistentes">Total de Asistentes:</label>
+                        <label for="asistentes"><i class="fas fa-users"></i> Total de Asistentes:</label>
                         <input type="number" id="asistentes" min="0" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="niños">Niños (si aplica):</label>
+                        <label for="niños"><i class="fas fa-child"></i> Niños (si aplica):</label>
                         <input type="number" id="niños" min="0">
                     </div>
                     
                     <div class="form-group">
-                        <label for="vehiculos_impacto">Vehículos Impacto:</label>
+                        <label for="vehiculos_impacto"><i class="fas fa-car"></i> Vehículos Impacto:</label>
                         <input type="number" id="vehiculos_impacto" min="0" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="vehiculos_lf">Vehículos Little Feet:</label>
+                        <label for="vehiculos_lf"><i class="fas fa-school"></i> Vehículos Little Feet:</label>
                         <input type="number" id="vehiculos_lf" min="0" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="ofrenda">Ofrenda (Lps):</label>
+                        <label for="ofrenda"><i class="fas fa-donate"></i> Ofrenda (Lps):</label>
                         <input type="number" id="ofrenda" min="0" step="0.01">
                     </div>
                     
                     <div class="form-group">
-                        <label for="notas">Notas Adicionales:</label>
+                        <label for="notas"><i class="fas fa-sticky-note"></i> Notas Adicionales:</label>
                         <input type="text" id="notas" placeholder="Observaciones importantes...">
                     </div>
                     
-                    <button type="submit">Guardar Registro</button>
+                    <button type="submit"><i class="fas fa-save"></i> Guardar Registro</button>
                 </form>
             </section>
         </div>
         
         <div class="tab-content" id="historico">
             <section class="form-section">
-                <h2 style="text-align: center; color: var(--impacto-blue);">Datos Históricos Completos</h2>
-                <p style="text-align: center;">Base de datos extraída del chat de WhatsApp (Enero 2025 - Septiembre 2025)</p>
+                <h2 class="section-title">Datos Históricos Completos</h2>
+                <p style="text-align: center; color: #718096;">Base de datos extraída del chat de WhatsApp (Enero 2025 - Septiembre 2025)</p>
                 
                 <div class="chart-container">
-                    <h3>Resumen de Todos los Registros</h3>
+                    <h3><i class="fas fa-table"></i> Resumen de Todos los Registros</h3>
                     <div style="overflow-x: auto;">
                         <table class="data-table" id="historicalData">
                             <thead>
@@ -438,9 +501,14 @@
                             </tbody>
                         </table>
                     </div>
-                    <button class="export-btn" onclick="exportToCSV()">Exportar a CSV</button>
+                    <button class="export-btn" onclick="exportToCSV()"><i class="fas fa-download"></i> Exportar a CSV</button>
                 </div>
             </section>
+        </div>
+        
+        <div class="impacto-footer">
+            <p><i class="fas fa-church"></i> Impacto SPS - Sistema de Estadísticas</p>
+            <p style="opacity: 0.8; font-size: 0.9em; margin-top: 5px;">Datos actualizados al <?php echo date('d/m/Y'); ?></p>
         </div>
     </div>
 
@@ -576,6 +644,9 @@
             { date: '2025-09-28', service: '9am', asistentes: 130, niños: 0, vehiculos_impacto: 62, vehiculos_lf: 20, total_vehiculos: 82 }
         ];
 
+        // [El resto del código JavaScript permanece igual que en la versión anterior...]
+        // Solo cambia la parte del CSS y HTML para usar los colores correctos
+
         // Combinar datos históricos con datos locales
         let attendanceData = JSON.parse(localStorage.getItem('churchAttendance')) || [];
         // Agregar datos históricos solo si no existen ya
@@ -610,8 +681,8 @@
                         {
                             label: 'Promedio Mensual de Asistentes',
                             data: monthlyData.averages,
-                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                            borderColor: 'rgba(30, 58, 138, 1)',
+                            backgroundColor: 'rgba(229, 62, 62, 0.8)',
+                            borderColor: 'rgba(229, 62, 62, 1)',
                             borderWidth: 2
                         }
                     ]
@@ -646,16 +717,16 @@
                         {
                             label: 'Promedio Vehículos Totales',
                             data: monthlyData.avgVehicles,
-                            borderColor: '#ef4444',
-                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            borderColor: '#1a365d',
+                            backgroundColor: 'rgba(26, 54, 93, 0.1)',
                             fill: true,
                             tension: 0.4
                         },
                         {
                             label: 'Promedio Vehículos Little Feet',
                             data: monthlyData.avgVehiclesLF,
-                            borderColor: '#8b5cf6',
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            borderColor: '#d69e2e',
+                            backgroundColor: 'rgba(214, 158, 46, 0.1)',
                             fill: true,
                             tension: 0.4
                         }
@@ -674,7 +745,7 @@
                     labels: ['9:00 AM', '11:00 AM', '5:00 PM', 'Otros'],
                     datasets: [{
                         data: [serviceData.total9am, serviceData.total11am, serviceData.total5pm, serviceData.totalOther],
-                        backgroundColor: ['#1e3a8a', '#10b981', '#f59e0b', '#6c757d']
+                        backgroundColor: ['#1a365d', '#e53e3e', '#d69e2e', '#718096']
                     }]
                 },
                 options: {
@@ -696,7 +767,7 @@
                     datasets: [{
                         label: 'Promedio de Asistentes por Servicio',
                         data: [averageData.avg9am, averageData.avg11am, averageData.avg5pm],
-                        backgroundColor: ['#1e3a8a', '#10b981', '#f59e0b']
+                        backgroundColor: ['#1a365d', '#e53e3e', '#d69e2e']
                     }]
                 },
                 options: {
@@ -819,6 +890,8 @@
                 </div>
             `;
         }
+
+        // [El resto del código JavaScript permanece igual...]
 
         // Manejar envío del formulario
         document.getElementById('attendanceForm').addEventListener('submit', function(e) {
