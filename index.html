@@ -35,15 +35,199 @@
         </div>
         
         <div class="tab-content active" id="dashboard">
-            <!-- Contenido del dashboard se carga dinámicamente -->
+            <div class="main-content">
+                <section class="charts-section">
+                    <div class="highlight-card">
+                        <div class="highlight-number" id="lastActivityCount">0</div>
+                        <div class="highlight-label" id="lastActivityLabel">Cargando última actividad...</div>
+                    </div>
+                    
+                    <h2 class="section-title">Análisis de Asistencia</h2>
+                    
+                    <div class="last-sunday-title" id="lastSundayTitle">Último Domingo Registrado</div>
+                    <div class="last-sunday-date" id="lastSundayDate"></div>
+                    
+                    <div class="stats-grid" id="sundayAnalysis">
+                        <!-- Los 4 cuadros de análisis del domingo se generarán automáticamente -->
+                    </div>
+
+                    <!-- Sección para mostrar servicios del día actual -->
+                    <div class="today-services" id="todayServices">
+                        <h3 class="section-title">Servicios de Hoy</h3>
+                        <div class="services-grid" id="todayServicesGrid">
+                            <!-- Se llenará automáticamente con los servicios de hoy -->
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-bar"></i> Promedio Mensual de Asistencia</h3>
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-users"></i> Asistencia por Tipo de Servicio</h3>
+                        <canvas id="averageChart"></canvas>
+                    </div>
+                </section>
+                
+                <section class="charts-section">
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-pie"></i> Distribución por Horario</h3>
+                        <canvas id="serviceDistributionChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-car"></i> Evolución de Vehículos</h3>
+                        <canvas id="vehiclesChart"></canvas>
+                    </div>
+                    
+                    <div class="comparison">
+                        <h3><i class="fas fa-trending-up"></i> Tendencia Actual</h3>
+                        <p id="trendMessage">Cargando análisis...</p>
+                    </div>
+
+                    <!-- === SISTEMA DE BACKUP === -->
+                    <div class="backup-section">
+                        <h3><i class="fas fa-shield-alt"></i> Sistema de Seguridad</h3>
+                        
+                        <div class="backup-status">
+                            <div class="status-indicator" id="backupStatus"></div>
+                            <span id="backupMessage">Verificando estado del backup...</span>
+                        </div>
+                        
+                        <div class="backup-actions">
+                            <button class="backup-btn" onclick="createBackup()">
+                                <i class="fas fa-download"></i> Descargar Backup
+                            </button>
+                            <button class="backup-btn email" onclick="emailBackup()">
+                                <i class="fas fa-envelope"></i> Enviar por Email
+                            </button>
+                            <button class="backup-btn whatsapp" onclick="shareBackup()">
+                                <i class="fab fa-whatsapp"></i> Compartir Backup
+                            </button>
+                            <button class="backup-btn" onclick="restoreBackup()">
+                                <i class="fas fa-undo"></i> Restaurar Datos
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- === SISTEMA WHATSAPP === -->
+                    <div class="whatsapp-section">
+                        <h3><i class="fab fa-whatsapp"></i> Compartir en WhatsApp</h3>
+                        <p style="margin-bottom: 15px; color: #666;">Comparte automáticamente las estadísticas con tu equipo:</p>
+                        
+                        <div class="share-actions">
+                            <button class="whatsapp-btn" onclick="shareWeeklySummary()">
+                                <i class="fas fa-chart-line"></i> Resumen Semanal
+                            </button>
+                            <button class="whatsapp-btn" onclick="shareSundaySummary()">
+                                <i class="fas fa-church"></i> Resumen Dominical
+                            </button>
+                            <button class="whatsapp-btn secondary" onclick="shareMonthlyReport()">
+                                <i class="fas fa-calendar-alt"></i> Reporte Mensual
+                            </button>
+                            <button class="whatsapp-btn secondary" onclick="shareVehiclesReport()">
+                                <i class="fas fa-car"></i> Estadísticas Vehículos
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Botones de exportación en el dashboard -->
+                    <div class="dashboard-export">
+                        <button class="export-btn" onclick="exportTodayData()">
+                            <i class="fas fa-file-export"></i> Exportar Datos de Hoy
+                        </button>
+                        <button class="export-btn" onclick="exportMonthReport()">
+                            <i class="fas fa-chart-bar"></i> Reporte Mensual
+                        </button>
+                    </div>
+                </section>
+            </div>
         </div>
         
         <div class="tab-content" id="registro">
-            <!-- Formulario de registro -->
+            <section class="form-section">
+                <h2 class="section-title">Ingresar Nuevos Datos</h2>
+                <form id="attendanceForm">
+                    <div class="form-group">
+                        <label for="date"><i class="fas fa-calendar"></i> Fecha:</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="serviceType"><i class="fas fa-clock"></i> Tipo de Servicio:</label>
+                        <select id="serviceType" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="9am">Domingo 9:00 AM</option>
+                            <option value="11am">Domingo 11:00 AM</option>
+                            <option value="5pm">Domingo 5:00 PM</option>
+                            <option value="cena_amor">Cena de Amor</option>
+                            <option value="especial">Servicio Especial</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="asistentes"><i class="fas fa-users"></i> Total de Asistentes:</label>
+                        <input type="number" id="asistentes" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="niños"><i class="fas fa-child"></i> Niños (si aplica):</label>
+                        <input type="number" id="niños" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehiculos_impacto"><i class="fas fa-car"></i> Vehículos Impacto:</label>
+                        <input type="number" id="vehiculos_impacto" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehiculos_lf"><i class="fas fa-school"></i> Vehículos Little Feet:</label>
+                        <input type="number" id="vehiculos_lf" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ofrenda"><i class="fas fa-donate"></i> Ofrenda (Lps):</label>
+                        <input type="number" id="ofrenda" min="0" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notas"><i class="fas fa-sticky-note"></i> Notas Adicionales:</label>
+                        <input type="text" id="notas" placeholder="Observaciones importantes...">
+                    </div>
+                    
+                    <button type="submit"><i class="fas fa-save"></i> Guardar Registro</button>
+                </form>
+            </section>
         </div>
         
         <div class="tab-content" id="historico">
-            <!-- Tabla histórica -->
+            <section class="form-section">
+                <h2 class="section-title">Datos Históricos Completos</h2>
+                <p style="text-align: center; color: #718096;">Base de datos extraída del chat de WhatsApp (Enero 2025 - Septiembre 2025)</p>
+                
+                <div class="chart-container">
+                    <h3><i class="fas fa-table"></i> Resumen de Todos los Registros</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="historicalData">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Servicio</th>
+                                    <th>Asistentes</th>
+                                    <th>Niños</th>
+                                    <th>Vehículos Total</th>
+                                    <th>Vehículos LF</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historicalTableBody">
+                                <!-- Los datos se llenarán automáticamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="export-btn" onclick="exportToCSV()"><i class="fas fa-download"></i> Exportar a CSV</button>
+                </div>
+            </section>
         </div>
         
         <div class="impacto-footer">
