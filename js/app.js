@@ -864,7 +864,6 @@ document.getElementById('attendanceForm').addEventListener('submit', function(e)
     attendanceData.push(newRecord);
     localStorage.setItem('churchAttendance', JSON.stringify(attendanceData));
     
-    // Actualizar gráficos y estadísticas
     updateCharts();
     updateQuickStats();
     updateTrendAnalysis();
@@ -872,36 +871,31 @@ document.getElementById('attendanceForm').addEventListener('submit', function(e)
     updateSundayAnalysis();
     updateTodayServices();
     
-    // Limpiar formulario
     this.reset();
     document.getElementById('date').valueAsDate = new Date();
     alert('¡Datos guardados exitosamente!');
 });
 
 function updateCharts() {
-    // Destruir gráficos existentes
-    if (monthlyChart) monthlyChart.destroy();
-    if (vehiclesChart) vehiclesChart.destroy();
-    if (serviceDistributionChart) serviceDistributionChart.destroy();
-    if (averageChart) averageChart.destroy();
-    
-    // Recrear gráficos con datos actualizados
+    destroyCharts();
     initCharts();
 }
 
 // NAVEGACIÓN ENTRE PESTAÑAS
 document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', function() {
-        // Remover clase active de todas las pestañas
         document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         
-        // Agregar clase active a la pestaña clickeada
         this.classList.add('active');
         const tabId = this.getAttribute('data-tab');
         document.getElementById(tabId).classList.add('active');
     });
 });
 
-// Inicializar cargando los datos
-loadAttendanceData();
+// Inicializar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadAttendanceData);
+} else {
+    loadAttendanceData();
+}
