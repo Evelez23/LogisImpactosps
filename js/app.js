@@ -18,7 +18,7 @@ async function loadAttendanceData() {
                     date: dayData.fecha,
                     service: serviceKey,
                     asistentes: service.personas || 0,
-                    niños: 0, // No hay datos de niños en el JSON actual
+                    niños: 0,
                     vehiculos_impacto: service.desglose ? service.desglose.impacto : (service.vehiculos || 0),
                     vehiculos_lf: service.desglose ? service.desglose.little_feet : 0,
                     total_vehiculos: service.vehiculos || 0,
@@ -48,11 +48,185 @@ async function loadAttendanceData() {
         
     } catch (error) {
         console.error('Error cargando los datos:', error);
-        // Cargar datos locales como fallback
         attendanceData = JSON.parse(localStorage.getItem('churchAttendance')) || [];
         initApp();
     }
 }
+
+function getServiceKey(timeString) {
+    switch(timeString) {
+        case '9:00 AM': return '9am';
+        case '11:00 AM': return '11am';
+        case '5:00 PM': return '5pm';
+        case '7:00 PM': return '7pm';
+        case '6:00 AM': return '6am';
+        default: return 'especial';
+    }
+}
+
+function getServiceName(serviceKey) {
+    const names = {
+        '9am': '9:00 AM',
+        '11am': '11:00 AM',
+        '5pm': '5:00 PM',
+        '7pm': '7:00 PM',
+        '6am': '6:00 AM',
+        'cena_amor': 'Cena de Amor',
+        'especial': 'Servicio Especial'
+    };
+    return names[serviceKey] || serviceKey;
+}
+
+// Inicializar la aplicación (SIMPLIFICADA)
+function initApp() {
+    initCharts();
+    updateQuickStats();
+    updateTrendAnalysis();
+    updateHistoricalTable();
+    updateSundayAnalysis();
+    updateTodayServices();
+    document.getElementById('date').valueAsDate = new Date();
+    
+    const now = new Date();
+    document.getElementById('currentDate').textContent = now.toLocaleDateString('es-ES');
+    
+    // Inicializar backup system después de un pequeño delay
+    setTimeout(() => {
+        if (typeof initializeBackupSystem === 'function') {
+            initializeBackupSystem();
+        }
+    }, 100);
+}
+
+// FUNCIONES DE GRÁFICOS (CON DESTRUCCIÓN SEGURA)
+function initCharts() {
+    // Destruir gráficos existentes de forma segura
+    destroyCharts();
+    
+    // Procesar datos para gráficos
+    const monthlyData = processMonthlyData();
+    const serviceData = processServiceData();
+    const averageData = processAverageData();
+
+    // Gráfico mensual
+    const monthlyCtx = document.getElementById('monthlyChart');
+    if (monthlyCtx) {
+        monthlyChart = new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: monthlyData.labels,
+                datasets: [{
+                    label: 'Promedio Mensual de Asistentes',
+                    data: monthlyData.averages,
+                    backgroundColor: 'rgba(212, 175, 55, 0.8)',
+                    borderColor: 'rgba(212, 175, 55, 1)',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: true, position: 'top' } },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Promedio de Asistentes' } }
+                }
+            }
+        });
+    }
+
+    // Gráfico de vehículos
+    const vehiclesCtx = document.getElementById('vehiclesChart');
+    if (vehiclesCtx) {
+        vehiclesChart = new Chart(vehiclesCtx, {
+            type: 'line',
+            data: {
+                labels: monthlyData.labels,
+                datasets: [
+                    {
+                        label: 'Promedio Vehículos Totales',
+                        data: monthlyData.avgVehicles,
+                        borderColor: '#d4af37',
+                        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Promedio Vehículos Little Feet',
+                        data: monthlyData.avgVehiclesLF,
+                        borderColor: '#e53e3e',
+                        backgroundColor: 'rgba(229, 62, 62, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: { responsive: true }
+        });
+    }
+
+    // Gráfico de distribución por servicio
+    const serviceCtx = document.getElementById('serviceDistributionChart');
+    if (serviceCtx) {
+        serviceDistributionChart = new Chart(serviceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['9:00 AM', '11:00 AM', '5:00 PM', 'Otros'],
+                datasets: [{
+                    data: [serviceData.total9am, serviceData.total11am, serviceData.total5pm, serviceData.totalOther],
+                    backgroundColor: ['#d4af37', '#e53e3e', '#b8941f', '#718096']
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
+    // Gráfico de promedios por servicio
+    const averageCtx = document.getElementById('averageChart');
+    if (averageCtx) {
+        averageChart = new Chart(averageCtx, {
+            type: 'bar',
+            data: {
+                labels: ['9:00 AM', '11:00 AM', '5:00 PM'],
+                datasets: [{
+                    label: 'Promedio de Asistentes por Servicio',
+                    data: [averageData.avg9am, averageData.avg11am, averageData.avg5pm],
+                    backgroundColor: ['#d4af37', '#e53e3e', '#b8941f']
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+}
+
+function destroyCharts() {
+    // Destruir gráficos de forma segura
+    try {
+        if (monthlyChart) {
+            monthlyChart.destroy();
+            monthlyChart = null;
+        }
+        if (vehiclesChart) {
+            vehiclesChart.destroy();
+            vehiclesChart = null;
+        }
+        if (serviceDistributionChart) {
+            serviceDistributionChart.destroy();
+            serviceDistributionChart = null;
+        }
+        if (averageChart) {
+            averageChart.destroy();
+            averageChart = null;
+        }
+    } catch (error) {
+        console.log('Error destruyendo gráficos:', error);
+    }
+}
+
 
 function getServiceKey(timeString) {
     switch(timeString) {
