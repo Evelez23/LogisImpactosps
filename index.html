@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registro Iglesia Impacto Pro - IA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://unpkg.com/ml5@latest/dist/ml5.min.js"></script>
+    <script src="https://unpkg.com/ml5@1.12.2/dist/ml5.min.js"></script>
     <style>
         body { 
             background-color: #f4f7f6; 
@@ -40,22 +40,18 @@
         }
         #video-container.activo {
             border-color: #28a745;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
         }
         video { 
             width: 100%; 
             height: auto; 
             display: block;
         }
-        canvas { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
+        .canvas-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             pointer-events: none;
         }
         .status-ia { 
@@ -114,6 +110,18 @@
             .total-number { font-size: 2.2rem; }
             .btn-custom { padding: 8px 16px; }
         }
+        
+        .detection-box {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 4px;
+            font-size: 12px;
+            padding: 2px 4px;
+            background: rgba(255, 255, 255, 0.7);
+        }
+        .person-box { border-color: #3498db; }
+        .child-box { border-color: #2ecc71; }
+        .car-box { border-color: #e74c3c; }
     </style>
 </head>
 <body>
@@ -127,17 +135,18 @@
         
         <div id="video-container">
             <video id="video" autoplay playsinline muted></video>
+            <canvas id="canvas-overlay" class="canvas-overlay"></canvas>
         </div>
         
         <div id="status" class="status-ia text-center">Cargando modelo de IA...</div>
         
         <div class="row g-2 mb-3">
-            <div class="col-6">
-                <button class="btn btn-custom btn-primary w-100" id="btn-detectar" onclick="detectarAhora()" disabled>
+            <div class="col-12 col-md-6">
+                <button class="btn btn-custom btn-primary w-100 mb-2" id="btn-detectar" onclick="detectarAhora()" disabled>
                     ✨ Contar con IA
                 </button>
             </div>
-            <div class="col-6">
+            <div class="col-12 col-md-6">
                 <select class="form-select" id="modo-deteccion">
                     <option value="normal">Normal (Personas + Vehículos)</option>
                     <option value="solo-personas">Solo Personas</option>
@@ -233,13 +242,15 @@
     // Variables globales
     let detector;
     let video;
+    let canvas;
+    let ctx;
     let procesando = false;
     let counts = { adultos: 0, niños: 0, carros: 0 };
     let historial = [];
     let ultimaDeteccion = null;
 
-    // Inicializar cámara e IA
-    async function setup() {
+    // Inicializar cámara
+    async function setupCamera() {
         try {
             video = document.getElementById('video');
             const status = document.getElementById('status');
@@ -254,8 +265,8 @@
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
                     facingMode: "environment",
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
                 }, 
                 audio: false 
             });
@@ -270,38 +281,86 @@
                 };
             });
 
-            status.innerText = "🧠 Cargando modelo de IA (COCO-SSD)...";
+            // Configurar canvas para dibujar
+            canvas = document.getElementById('canvas-overlay');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx = canvas.getContext('2d');
             
-            // Cargar modelo con timeout
-            const modelLoadPromise = new Promise((resolve, reject) => {
-                const timeout = setTimeout(() => reject(new Error("Timeout cargando modelo")), 15000);
-                
-                detector = ml5.objectDetector('cocossd', { scoreThreshold: 0.5 }, (err) => {
-                    clearTimeout(timeout);
-                    if (err) reject(err);
-                    else resolve();
-                });
-            });
-
-            await modelLoadPromise;
-            
-            // Activar indicador visual
-            document.getElementById('video-container').classList.add('activo');
-            status.innerHTML = "✅ <strong>IA Lista para contar</strong>";
-            document.getElementById('btn-detectar').disabled = false;
-            
-            console.log("Sistema de IA inicializado correctamente");
+            return true;
             
         } catch (error) {
-            console.error("Error en setup:", error);
-            const status = document.getElementById('status');
-            status.innerHTML = `❌ <strong>Error:</strong> ${error.message}`;
-            status.style.color = "#dc3545";
-            document.getElementById('btn-detectar').disabled = true;
-            
-            // Mostrar instrucciones alternativas
-            alert("No se pudo cargar la cámara o el modelo de IA. Por favor, use los botones manuales.");
+            console.error("Error al configurar cámara:", error);
+            throw error;
         }
+    }
+
+    // Inicializar modelo de IA
+    async function setupModel() {
+        try {
+            const status = document.getElementById('status');
+            status.innerText = "🧠 Cargando modelo COCO-SSD...";
+            
+            // Cargar modelo COCO-SSD usando la API correcta de ml5.js
+            detector = await ml5.objectDetector('cocossd', { modelUrl: 'https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd' });
+            
+            status.innerHTML = "✅ <strong>IA Lista para contar</strong>";
+            document.getElementById('video-container').classList.add('activo');
+            document.getElementById('btn-detectar').disabled = false;
+            
+            console.log("Modelo COCO-SSD cargado correctamente");
+            return true;
+            
+        } catch (error) {
+            console.error("Error al cargar modelo:", error);
+            throw error;
+        }
+    }
+
+    // Dibujar detecciones en el canvas
+    function drawDetections(results) {
+        // Limpiar canvas
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Dibujar cada detección
+        results.forEach(detection => {
+            const [x, y, width, height] = detection.bbox;
+            const label = detection.label;
+            const confidence = Math.round(detection.confidence * 100);
+            
+            // Determinar color según tipo
+            let color, className;
+            if (label === 'person') {
+                // Distinguir entre adulto y niño
+                if (height < canvas.height * 0.4) {
+                    color = '#2ecc71'; // Verde para niños
+                    className = 'child-box';
+                } else {
+                    color = '#3498db'; // Azul para adultos
+                    className = 'person-box';
+                }
+            } else if (label === 'car' || label === 'truck') {
+                color = '#e74c3c'; // Rojo para vehículos
+                className = 'car-box';
+            } else {
+                color = '#f39c12'; // Naranja para otros
+                className = 'person-box';
+            }
+            
+            // Dibujar rectángulo
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+            
+            // Dibujar fondo para etiqueta
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y - 20, 150, 20);
+            
+            // Dibujar texto
+            ctx.fillStyle = 'white';
+            ctx.font = '12px Arial';
+            ctx.fillText(`${label} ${confidence}%`, x + 5, y - 5);
+        });
     }
 
     // Función principal de detección
@@ -325,61 +384,56 @@
         btnDetectar.disabled = true;
         
         try {
-            detector.detect(video, (err, results) => {
-                procesando = false;
-                btnDetectar.disabled = false;
+            // Realizar detección
+            const results = await detector.detect(video);
+            
+            let a = 0, n = 0, c = 0;
+            const detecciones = [];
+            
+            results.forEach(detection => {
+                if (detection.confidence < 0.5) return; // Filtrar baja confianza
                 
-                if (err) {
-                    console.error("Error en detección:", err);
-                    status.innerHTML = "❌ <strong>Error en detección</strong>";
-                    alert("Error en detección: " + err.message);
-                    return;
-                }
-                
-                let a = 0, n = 0, c = 0;
-                const detecciones = [];
-                
-                results.forEach(obj => {
-                    if (obj.confidence < 0.6) return; // Filtrar baja confianza
+                if (detection.label === 'person') {
+                    // Distinguir entre adulto y niño basado en altura relativa
+                    const alturaRelativa = detection.bbox[3] / video.videoHeight;
                     
-                    if (obj.label === 'person') {
-                        // Mejor lógica para distinguir adultos/niños
-                        const alturaRelativa = obj.height / video.videoHeight;
-                        const area = obj.width * obj.height;
-                        
-                        // Usar múltiples criterios
-                        if (alturaRelativa < 0.4 && area < 10000) {
-                            n++;
-                            detecciones.push({tipo: 'niño', confianza: obj.confidence});
-                        } else {
-                            a++;
-                            detecciones.push({tipo: 'adulto', confianza: obj.confidence});
-                        }
+                    if (alturaRelativa < 0.35) {
+                        n++;
+                        detecciones.push({tipo: 'niño', confianza: detection.confidence});
+                    } else {
+                        a++;
+                        detecciones.push({tipo: 'adulto', confianza: detection.confidence});
                     }
-                    if ((obj.label === 'car' || obj.label === 'truck') && modo !== 'solo-personas') {
-                        c++;
-                        detecciones.push({tipo: 'vehículo', confianza: obj.confidence});
-                    }
-                });
-                
-                // Filtrar según modo seleccionado
-                if (modo === 'solo-personas') c = 0;
-                if (modo === 'solo-vehiculos') { a = 0; n = 0; }
-                
-                ultimaDeteccion = { adultos: a, niños: n, carros: c, timestamp: new Date() };
-                
-                if (a > 0 || n > 0 || c > 0) {
-                    mostrarConfirmacionDeteccion(a, n, c, detecciones);
-                } else {
-                    status.innerHTML = "👁️ <strong>No se detectaron objetos</strong>";
-                    alert("No se detectaron personas ni vehículos en la imagen. Asegúrese de apuntar la cámara correctamente.");
+                }
+                else if ((detection.label === 'car' || detection.label === 'truck') && modo !== 'solo-personas') {
+                    c++;
+                    detecciones.push({tipo: 'vehículo', confianza: detection.confidence});
                 }
             });
+            
+            // Filtrar según modo seleccionado
+            if (modo === 'solo-personas') c = 0;
+            if (modo === 'solo-vehiculos') { a = 0; n = 0; }
+            
+            // Dibujar detecciones en canvas
+            drawDetections(results);
+            
+            ultimaDeteccion = { adultos: a, niños: n, carros: c, timestamp: new Date() };
+            
+            if (a > 0 || n > 0 || c > 0) {
+                mostrarConfirmacionDeteccion(a, n, c, detecciones);
+            } else {
+                status.innerHTML = "👁️ <strong>No se detectaron objetos</strong>";
+                alert("No se detectaron personas ni vehículos en la imagen.\n\nSugerencias:\n1. Mejore la iluminación\n2. Acérquese más al objeto\n3. Asegúrese de que haya personas/vehículos en el marco");
+            }
+            
         } catch (error) {
+            console.error("Error en detección:", error);
+            status.innerHTML = "❌ <strong>Error en detección</strong>";
+            alert("Error al procesar la imagen: " + error.message);
+        } finally {
             procesando = false;
             btnDetectar.disabled = false;
-            status.innerHTML = "❌ <strong>Error en procesamiento</strong>";
-            alert("Error: " + error.message);
         }
     }
 
@@ -392,7 +446,8 @@
         mensaje += `✅ Adultos detectados: ${a}\n`;
         mensaje += `👶 Niños detectados: ${n}\n`;
         mensaje += `🚗 Vehículos detectados: ${c}\n`;
-        mensaje += `\nConfianza promedio: ${calcularConfianzaPromedio(detecciones)}%\n`;
+        mensaje += `\nTotal objetos: ${a + n + c}\n`;
+        mensaje += `Confianza promedio: ${calcularConfianzaPromedio(detecciones)}%\n`;
         mensaje += `\n¿Desea agregar estos valores al conteo total?`;
         
         if (confirm(mensaje)) {
@@ -417,6 +472,8 @@
             mostrarEfectoAgregado(a, n, c);
         } else {
             status.innerHTML = "✅ <strong>IA Lista para contar</strong>";
+            // Limpiar canvas si no se confirma
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
     }
 
@@ -436,9 +493,18 @@
         
         elementos.forEach(id => {
             const elemento = document.getElementById(id);
-            elemento.classList.add('text-success');
-            setTimeout(() => elemento.classList.remove('text-success'), 1000);
+            elemento.style.transform = 'scale(1.1)';
+            elemento.style.color = '#27ae60';
+            setTimeout(() => {
+                elemento.style.transform = 'scale(1)';
+                elemento.style.color = '';
+            }, 500);
         });
+        
+        // También animar el total
+        const totalPersonas = document.getElementById('total-personas');
+        totalPersonas.style.transform = 'scale(1.1)';
+        setTimeout(() => totalPersonas.style.transform = 'scale(1)', 500);
     }
 
     // Guardar en historial
@@ -450,7 +516,7 @@
             niños: n,
             carros: c,
             total: a + n,
-            detecciones: detecciones,
+            detecciones: detecciones.length,
             modo: document.getElementById('modo-deteccion').value
         });
         
@@ -491,7 +557,7 @@
                     <span class="badge-adult detection-badge">👥 ${item.adultos}</span>
                     <span class="badge-child detection-badge">👶 ${item.niños}</span>
                     <span class="badge-car detection-badge">🚗 ${item.carros}</span>
-                    <span class="badge bg-secondary detection-badge">Total: ${item.total}</span>
+                    <span class="badge bg-secondary detection-badge">Detecciones: ${item.detecciones}</span>
                 </div>
             `;
             lista.appendChild(div);
@@ -513,8 +579,12 @@
         
         // Pequeño feedback visual
         const elemento = document.getElementById(`${tipo}-val`);
-        elemento.classList.add(valor > 0 ? 'text-success' : 'text-danger');
-        setTimeout(() => elemento.classList.remove('text-success', 'text-danger'), 300);
+        elemento.style.transform = valor > 0 ? 'scale(1.1)' : 'scale(0.9)';
+        elemento.style.color = valor > 0 ? '#27ae60' : '#e74c3c';
+        setTimeout(() => {
+            elemento.style.transform = 'scale(1)';
+            elemento.style.color = '';
+        }, 300);
     }
 
     // Actualizar toda la interfaz
@@ -549,6 +619,12 @@
             actualizarUI();
             document.getElementById('historial-container').style.display = 'none';
             localStorage.removeItem('iglesiaConteo');
+            
+            // Limpiar canvas
+            if (ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            
             alert("✅ Conteo reiniciado exitosamente.");
         }
     }
@@ -577,11 +653,11 @@
         // Historial de detecciones
         if (historial.length > 0) {
             csvContent += "HISTORIAL DE DETECCIONES POR IA\n";
-            csvContent += "Fecha,Hora,Adultos,Niños,Vehículos,Total Personas,Modo\n";
+            csvContent += "Fecha,Hora,Adultos,Niños,Vehículos,Total Personas,Modo,Detecciones\n";
             
             historial.forEach(item => {
                 const d = new Date(item.timestamp);
-                csvContent += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${item.adultos},${item.niños},${item.carros},${item.total},${item.modo}\n`;
+                csvContent += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${item.adultos},${item.niños},${item.carros},${item.total},${item.modo},${item.detecciones}\n`;
             });
             csvContent += "\n";
         }
@@ -590,7 +666,7 @@
         csvContent += "METADATA\n";
         csvContent += `Total detecciones IA,${historial.length}\n`;
         csvContent += `Modelo utilizado,COCO-SSD\n`;
-        csvContent += `Versión sistema,2.0\n`;
+        csvContent += `Versión sistema,2.1\n`;
         
         // Crear y descargar archivo
         const encodedUri = encodeURI(csvContent);
@@ -611,7 +687,7 @@
             counts: counts,
             historial: historial,
             fechaGuardado: new Date().toISOString(),
-            version: '2.0'
+            version: '2.1'
         };
         localStorage.setItem('iglesiaConteo', JSON.stringify(data));
     }
@@ -649,15 +725,30 @@
     setInterval(guardarEnStorage, 60000);
 
     // Inicializar cuando cargue la página
-    window.addEventListener('DOMContentLoaded', () => {
-        cargarDesdeStorage();
-        setup();
-        
-        // Mostrar historial si existe
-        if (historial.length > 0) {
-            mostrarHistorial();
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            cargarDesdeStorage();
+            
+            // Configurar cámara
+            await setupCamera();
+            
+            // Configurar modelo
+            await setupModel();
+            
+            // Mostrar historial si existe
+            if (historial.length > 0) {
+                mostrarHistorial();
+            }
+            
+        } catch (error) {
+            const status = document.getElementById('status');
+            status.innerHTML = `❌ <strong>Error de inicialización:</strong> ${error.message}`;
+            status.style.color = "#dc3545";
+            
+            // Ofrecer modo manual
+            alert(`No se pudo inicializar la cámara o el modelo de IA.\n\nPuede usar los botones manuales para el conteo.\n\nError: ${error.message}`);
         }
     });
 </script>
 </body>
-        </html>
+    </html>
