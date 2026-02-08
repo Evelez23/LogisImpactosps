@@ -3,273 +3,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro Iglesia Impacto Pro - IA</title>
+    <title>Registro Iglesia Impacto Pro - IA por Imagen</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Versión alternativa de ml5.js -->
-    <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2"></script>
     <style>
         body { 
-            background-color: #f4f7f6; 
+            background-color: #f8f9fa; 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .card { 
             border-radius: 15px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             border: none;
-            transition: transform 0.2s;
-            margin-bottom: 1rem;
+            transition: transform 0.3s;
+            margin-bottom: 1.5rem;
         }
         .card:hover {
-            transform: translateY(-2px);
+            transform: translateY(-3px);
         }
         .header-title {
             color: #2c3e50;
-            font-weight: 700;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            font-weight: 800;
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #3498db;
         }
-        #video-container { 
-            position: relative; 
-            width: 100%; 
-            max-width: 450px; 
-            margin: auto; 
-            overflow: hidden; 
-            border-radius: 12px; 
-            background: #000;
-            border: 3px solid #dee2e6;
-            transition: border-color 0.3s;
-            min-height: 300px;
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
         }
-        #video-container.activo {
+        .upload-area:hover {
+            background-color: #e8f4f8;
+            border-color: #2980b9;
+        }
+        .upload-area.dragover {
+            background-color: #d4edda;
             border-color: #28a745;
         }
-        video { 
-            width: 100%; 
-            height: auto; 
-            display: block;
-            transform: scaleX(-1); /* Espejo para parecer espejo */
+        .image-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
-        .canvas-overlay {
+        #previewImage {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .detection-canvas {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             pointer-events: none;
-            transform: scaleX(-1); /* Igual que el video */
-        }
-        .status-ia { 
-            font-size: 0.85rem; 
-            color: #666;
-            padding: 8px;
-            border-radius: 8px;
-            background-color: #f8f9fa;
-            margin: 10px 0;
         }
         .counter-display {
-            font-size: 2.5rem;
+            font-size: 2.8rem;
             font-weight: bold;
             color: #2c3e50;
             margin: 10px 0;
             transition: all 0.3s;
         }
-        .btn-custom {
-            font-weight: 600;
-            padding: 10px 20px;
-            border-radius: 10px;
-            transition: all 0.3s;
-            border: none;
-        }
-        .btn-custom:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        .counter-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            height: 100%;
         }
         .total-card {
             background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
             color: white;
+            padding: 25px 20px;
         }
         .total-number {
-            font-size: 2.8rem;
+            font-size: 3.2rem;
             font-weight: bold;
+        }
+        .btn-custom {
+            font-weight: 600;
+            padding: 12px 24px;
+            border-radius: 10px;
             transition: all 0.3s;
+            border: none;
+            font-size: 1.1rem;
         }
-        .history-item {
-            border-left: 4px solid #3498db;
-            padding: 10px 15px;
-            margin-bottom: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            font-size: 0.9rem;
+        .btn-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-        .detection-badge {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            margin: 2px;
+        .btn-primary-custom {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
             color: white;
         }
-        .badge-adult { background: #3498db; }
-        .badge-child { background: #2ecc71; }
-        .badge-car { background: #e74c3c; }
-        
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
+        .btn-success-custom {
+            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+            color: white;
+        }
+        .btn-danger-custom {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+        }
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #3498db;
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-right: 10px;
+            margin-bottom: 20px;
         }
-        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        .error-message {
-            color: #e74c3c;
-            background-color: #ffebee;
-            border: 1px solid #e74c3c;
+        .status-message {
+            padding: 12px;
             border-radius: 8px;
-            padding: 10px;
             margin: 10px 0;
+            text-align: center;
+            font-weight: 500;
         }
-        
-        .success-message {
-            color: #27ae60;
-            background-color: #e8f5e9;
-            border: 1px solid #27ae60;
+        .status-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .status-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .history-item {
+            background: white;
+            border-left: 4px solid #3498db;
+            padding: 12px 15px;
+            margin-bottom: 10px;
             border-radius: 8px;
-            padding: 10px;
-            margin: 10px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        
-        .manual-mode {
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 10px 0;
-            color: #856404;
+        .detection-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin: 2px;
+            color: white;
+            font-weight: 500;
         }
-        
-        @media (max-width: 768px) {
-            .counter-display { font-size: 2rem; }
-            .total-number { font-size: 2.2rem; }
-            .btn-custom { padding: 8px 16px; }
-            #video-container { min-height: 250px; }
-        }
+        .badge-adult { background: #3498db; }
+        .badge-child { background: #2ecc71; }
+        .badge-car { background: #e74c3c; }
+        .badge-other { background: #9b59b6; }
         
         .detection-info {
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             color: #666;
             text-align: center;
-            margin-top: 5px;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
         }
         
         .instructions {
-            background-color: #e8f4f8;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-left: 4px solid #3498db;
+            background: linear-gradient(135deg, #e8f4f8 0%, #f0f7fa 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 5px solid #3498db;
         }
         
-        .instructions h6 {
+        .instructions h5 {
             color: #2c3e50;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
         
-        .instructions ul {
-            margin-bottom: 0;
+        .instructions ol {
             padding-left: 20px;
+            margin-bottom: 0;
         }
         
         .instructions li {
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .sample-images {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .sample-img {
+            width: 120px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin: 0 5px 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .sample-img:hover {
+            transform: scale(1.05);
+            border-color: #3498db;
+        }
+        
+        @media (max-width: 768px) {
+            .counter-display { font-size: 2.2rem; }
+            .total-number { font-size: 2.5rem; }
+            .btn-custom { padding: 10px 20px; font-size: 1rem; }
+            .image-container { max-width: 100%; }
+        }
+        
+        .file-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .accuracy-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(52, 152, 219, 0.9);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            z-index: 10;
+        }
+        
+        .detection-stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
         }
     </style>
 </head>
 <body>
 
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <h4 id="loadingText">Cargando modelo de IA...</h4>
+    <p class="text-muted mt-2">Por favor espere, esto puede tomar unos segundos</p>
+</div>
+
 <div class="container py-4">
-    <h2 class="text-center mb-4 header-title">⛪ Sistema de Registro Inteligente</h2>
+    <h1 class="header-title">⛪ Sistema de Conteo Inteligente por Imagen</h1>
     
     <!-- Instrucciones -->
     <div class="instructions">
-        <h6>📋 Instrucciones Rápidas:</h6>
-        <ul>
-            <li>Permita el acceso a la cámara cuando se le solicite</li>
-            <li>Apunte la cámara hacia el área donde desea contar personas/vehículos</li>
-            <li>Presione "Contar con IA" para activar el reconocimiento</li>
-            <li>Use los botones +/- para ajustes manuales</li>
-            <li>Exporte el reporte al finalizar</li>
-        </ul>
+        <h5>📋 ¿Cómo funciona?</h5>
+        <ol>
+            <li><strong>Sube una foto</strong> de la zona que quieres analizar (puedes arrastrar o hacer clic)</li>
+            <li><strong>La IA detectará automáticamente</strong> personas y vehículos en la imagen</li>
+            <li><strong>Revisa los resultados</strong> y confirma para agregarlos al conteo total</li>
+            <li><strong>Usa los botones +/-</strong> para ajustar manualmente si es necesario</li>
+            <li><strong>Exporta el reporte</strong> en formato CSV al finalizar</li>
+        </ol>
+        <div class="sample-images">
+            <p class="mb-2"><small><i>Prueba con estas imágenes de ejemplo:</i></small></p>
+            <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=300&fit=crop" class="sample-img" onclick="loadSampleImage(this.src)" alt="Grupo de personas">
+            <img src="https://images.unsplash.com/photo-1543269865-cbf427effbad?w=400&h=300&fit=crop" class="sample-img" onclick="loadSampleImage(this.src)" alt="Estacionamiento">
+            <img src="https://images.unsplash.com/photo-1531058020387-3be344556be6?w-400&h=300&fit=crop" class="sample-img" onclick="loadSampleImage(this.src)" alt="Congregación">
+        </div>
     </div>
     
-    <!-- Tarjeta de IA -->
-    <div class="card p-4 mb-4">
-        <h5 class="card-title text-center mb-3">🎯 Escáner de Inteligencia Artificial</h5>
+    <!-- Área de Subida -->
+    <div class="card p-4">
+        <h5 class="text-center mb-3">📤 Sube una Imagen para Analizar</h5>
         
-        <div id="video-container">
-            <video id="video" autoplay playsinline muted></video>
-            <canvas id="canvas-overlay" class="canvas-overlay"></canvas>
-            <div id="video-placeholder" class="d-flex justify-content-center align-items-center text-white" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50;">
-                <div class="text-center">
-                    <div class="loading-spinner"></div>
-                    <p class="mt-2">Inicializando cámara...</p>
-                </div>
+        <div id="uploadArea" class="upload-area">
+            <div class="mb-3">
+                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem; color: #3498db;"></i>
+                <h5>Arrastra y suelta tu imagen aquí</h5>
+                <p class="text-muted">O haz clic para seleccionar un archivo</p>
+                <p class="text-muted small">Formatos: JPG, PNG, WEBP (Máx. 5MB)</p>
+            </div>
+            <input type="file" id="fileInput" accept="image/*" class="d-none">
+            <button class="btn btn-primary-custom btn-custom" onclick="document.getElementById('fileInput').click()">
+                📁 Seleccionar Imagen
+            </button>
+        </div>
+        
+        <!-- Información del archivo -->
+        <div id="fileInfo" class="file-info" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center">
+                <span id="fileName"></span>
+                <span id="fileSize"></span>
             </div>
         </div>
         
-        <div id="status" class="status-ia text-center">
-            <span class="loading-spinner"></span>
-            <span id="status-text">Inicializando sistema...</span>
+        <!-- Vista previa de imagen -->
+        <div id="imagePreviewContainer" class="image-container" style="display: none;">
+            <img id="previewImage" src="" alt="Vista previa">
+            <canvas id="detectionCanvas" class="detection-canvas"></canvas>
+            <div id="accuracyBadge" class="accuracy-badge" style="display: none;"></div>
         </div>
         
-        <!-- Modo Manual (se muestra si falla la IA) -->
-        <div id="manual-mode-alert" class="manual-mode" style="display: none;">
-            <strong>⚠️ Modo Manual Activado</strong>
-            <p class="mb-0">El sistema de IA no está disponible. Use los botones manuales para el conteo.</p>
+        <!-- Botón de análisis -->
+        <div class="text-center mt-3">
+            <button id="analyzeButton" class="btn btn-success-custom btn-custom" onclick="analyzeImage()" disabled>
+                🔍 Analizar Imagen con IA
+            </button>
         </div>
         
-        <div class="row g-2 mb-3">
-            <div class="col-12 col-md-8">
-                <button class="btn btn-custom btn-primary w-100 mb-2" id="btn-detectar" onclick="detectarAhora()" disabled>
-                    <span id="btn-icon">✨</span>
-                    <span id="btn-text">Contar con IA</span>
+        <!-- Mensajes de estado -->
+        <div id="statusMessage" class="status-message" style="display: none;"></div>
+    </div>
+    
+    <!-- Resultados de Detección -->
+    <div id="resultsContainer" style="display: none;">
+        <div class="card p-4">
+            <h5 class="text-center mb-3">🎯 Resultados del Análisis</h5>
+            
+            <div class="detection-stats" id="detectionStats">
+                <!-- Estadísticas se llenan aquí -->
+            </div>
+            
+            <div class="text-center mt-4">
+                <button class="btn btn-success-custom btn-custom me-2" onclick="addToCount()">
+                    ✅ Agregar al Conteo Total
+                </button>
+                <button class="btn btn-outline-secondary" onclick="resetDetection()">
+                    🔄 Analizar Otra Imagen
                 </button>
             </div>
-            <div class="col-12 col-md-4">
-                <select class="form-select" id="modo-deteccion">
-                    <option value="normal">Normal</option>
-                    <option value="solo-personas">Solo Personas</option>
-                    <option value="solo-vehiculos">Solo Vehículos</option>
-                </select>
-            </div>
-        </div>
-        
-        <div class="detection-info">
-            <i>La IA puede detectar personas y vehículos. Los niños se identifican por su altura relativa.</i>
         </div>
     </div>
 
     <!-- Resumen Total -->
-    <div class="card p-3 mb-4 total-card">
-        <h6 class="text-center text-white mb-3">📊 RESUMEN TOTAL DEL EVENTO</h6>
+    <div class="card p-4 total-card">
+        <h5 class="text-center text-white mb-4">📊 RESUMEN TOTAL DEL EVENTO</h5>
         <div class="row text-center">
-            <div class="col-6">
+            <div class="col-md-6 mb-3 mb-md-0">
                 <small class="text-white-50">Total Personas</small>
                 <div class="total-number" id="total-personas">0</div>
             </div>
-            <div class="col-6">
+            <div class="col-md-6">
                 <small class="text-white-50">Total Vehículos</small>
                 <div class="total-number" id="total-carros">0</div>
             </div>
         </div>
-        <div class="text-center mt-2">
+        <div class="text-center mt-3">
             <small class="text-white-50" id="timestamp">Última actualización: --:--:--</small>
         </div>
     </div>
@@ -277,50 +413,47 @@
     <!-- Contadores Manuales -->
     <div class="row g-3 mb-4">
         <div class="col-md-4">
-            <div class="card p-3 text-center h-100">
-                <h6 class="text-primary">👨‍👩‍👦 Adultos</h6>
-                <div class="counter-display" id="adultos-val">0</div>
-                <div class="d-flex justify-content-between mt-2">
-                    <button class="btn btn-danger btn-custom" onclick="cambiar('adultos', -1)" style="width: 48%;">-</button>
-                    <button class="btn btn-success btn-custom" onclick="cambiar('adultos', 1)" style="width: 48%;">+</button>
+            <div class="counter-card">
+                <h6 class="text-center text-primary mb-3">👨‍👩‍👦 Adultos</h6>
+                <div class="counter-display text-center" id="adultos-val">0</div>
+                <div class="d-flex justify-content-between mt-3">
+                    <button class="btn btn-danger-custom btn-custom" onclick="cambiar('adultos', -1)" style="width: 48%;">-</button>
+                    <button class="btn btn-success-custom btn-custom" onclick="cambiar('adultos', 1)" style="width: 48%;">+</button>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card p-3 text-center h-100">
-                <h6 class="text-success">👶 Niños</h6>
-                <div class="counter-display" id="niños-val">0</div>
-                <div class="d-flex justify-content-between mt-2">
-                    <button class="btn btn-danger btn-custom" onclick="cambiar('niños', -1)" style="width: 48%;">-</button>
-                    <button class="btn btn-success btn-custom" onclick="cambiar('niños', 1)" style="width: 48%;">+</button>
+            <div class="counter-card">
+                <h6 class="text-center text-success mb-3">👶 Niños</h6>
+                <div class="counter-display text-center" id="niños-val">0</div>
+                <div class="d-flex justify-content-between mt-3">
+                    <button class="btn btn-danger-custom btn-custom" onclick="cambiar('niños', -1)" style="width: 48%;">-</button>
+                    <button class="btn btn-success-custom btn-custom" onclick="cambiar('niños', 1)" style="width: 48%;">+</button>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="card p-3 text-center h-100">
-                <h6 class="text-danger">🚗 Vehículos</h6>
-                <div class="counter-display" id="carros-val">0</div>
-                <div class="d-flex justify-content-between mt-2">
-                    <button class="btn btn-danger btn-custom" onclick="cambiar('carros', -1)" style="width: 48%;">-</button>
-                    <button class="btn btn-success btn-custom" onclick="cambiar('carros', 1)" style="width: 48%;">+</button>
+            <div class="counter-card">
+                <h6 class="text-center text-danger mb-3">🚗 Vehículos</h6>
+                <div class="counter-display text-center" id="carros-val">0</div>
+                <div class="d-flex justify-content-between mt-3">
+                    <button class="btn btn-danger-custom btn-custom" onclick="cambiar('carros', -1)" style="width: 48%;">-</button>
+                    <button class="btn btn-success-custom btn-custom" onclick="cambiar('carros', 1)" style="width: 48%;">+</button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Historial de Detecciones -->
-    <div class="card p-3 mb-4" id="historial-container" style="display: none;">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 class="mb-0">📝 Historial Reciente</h6>
-            <button class="btn btn-sm btn-outline-secondary" onclick="toggleHistorial()">Ver Todo</button>
-        </div>
-        <div id="historial-lista" class="mt-2">
+    <div class="card p-4 mb-4" id="historial-container" style="display: none;">
+        <h5 class="mb-3">📝 Historial de Análisis</h5>
+        <div id="historial-lista">
             <!-- Historial se carga aquí -->
         </div>
     </div>
 
     <!-- Botones de Acción -->
-    <div class="row g-2">
+    <div class="row g-3">
         <div class="col-md-6">
             <button class="btn btn-dark btn-custom w-100 mb-2" onclick="exportarCSV()">
                 💾 Exportar Reporte CSV
@@ -328,332 +461,412 @@
         </div>
         <div class="col-md-6">
             <button class="btn btn-outline-danger btn-custom w-100 mb-2" onclick="confirmarLimpiar()">
-                🗑️ Reiniciar Conteo
+                🗑️ Reiniciar Todo
             </button>
         </div>
     </div>
 
     <!-- Información del Sistema -->
     <div class="text-center mt-4 small text-muted">
-        <p>Sistema de Registro Inteligente v2.2 | Iglesia Impacto Pro<br>
-        <span id="system-info">Cargando información del sistema...</span></p>
+        <p>Sistema de Conteo por Imagen v3.0 | Iglesia Impacto Pro<br>
+        <span id="systemInfo">Modelo de IA: COCO-SSD</span></p>
     </div>
 </div>
 
 <script>
     // Variables globales
-    let detector = null;
-    let video = null;
-    let canvas = null;
-    let ctx = null;
-    let procesando = false;
-    let modoIA = false; // Indica si la IA está disponible
+    let model = null;
+    let currentImage = null;
+    let currentDetections = [];
     let counts = { adultos: 0, niños: 0, carros: 0 };
     let historial = [];
-    let detectionHistory = [];
+    let lastDetectionResults = null;
 
     // Elementos del DOM
-    let statusElement, statusText, btnDetectar, btnIcon, btnText;
-
-    // Inicializar elementos del DOM
-    function initDOMElements() {
-        statusElement = document.getElementById('status');
-        statusText = document.getElementById('status-text');
-        btnDetectar = document.getElementById('btn-detectar');
-        btnIcon = document.getElementById('btn-icon');
-        btnText = document.getElementById('btn-text');
-    }
-
-    // Verificar si ml5 está disponible
-    function checkML5() {
-        return typeof ml5 !== 'undefined';
-    }
-
-    // Inicializar cámara
-    async function setupCamera() {
-        try {
-            updateStatus("📷 Solicitando acceso a la cámara...");
-            
-            video = document.getElementById('video');
-            const placeholder = document.getElementById('video-placeholder');
-            
-            // Verificar si hay cámara disponible
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                throw new Error("Su navegador no soporta el acceso a la cámara");
-            }
-            
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { 
-                    facingMode: "environment",
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                }, 
-                audio: false 
-            });
-            
-            video.srcObject = stream;
-            
-            // Esperar a que el video esté listo
-            await new Promise((resolve, reject) => {
-                video.onloadedmetadata = () => {
-                    video.play();
-                    
-                    // Configurar canvas para dibujar
-                    canvas = document.getElementById('canvas-overlay');
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    ctx = canvas.getContext('2d');
-                    
-                    // Ocultar placeholder y mostrar video
-                    placeholder.style.display = 'none';
-                    resolve();
-                };
-                
-                video.onerror = reject;
-                
-                // Timeout de seguridad
-                setTimeout(() => reject(new Error("Timeout al cargar video")), 5000);
-            });
-            
-            updateStatus("✅ Cámara lista");
-            return true;
-            
-        } catch (error) {
-            console.error("Error en cámara:", error);
-            updateStatus(`❌ Error en cámara: ${error.message}`, 'error');
-            return false;
-        }
-    }
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    const previewImage = document.getElementById('previewImage');
+    const detectionCanvas = document.getElementById('detectionCanvas');
+    const accuracyBadge = document.getElementById('accuracyBadge');
+    const analyzeButton = document.getElementById('analyzeButton');
+    const statusMessage = document.getElementById('statusMessage');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const detectionStats = document.getElementById('detectionStats');
 
     // Inicializar modelo de IA
-    async function setupModel() {
+    async function loadModel() {
         try {
-            if (!checkML5()) {
-                throw new Error("La biblioteca ml5.js no se cargó correctamente");
-            }
+            loadingText.textContent = "Cargando modelo COCO-SSD...";
             
-            updateStatus("🧠 Cargando modelo de IA...");
+            // Cargar modelo COCO-SSD directamente
+            model = await cocoSsd.load();
             
-            // Intentar cargar el modelo COCO-SSD
-            detector = await ml5.objectDetector('cocossd');
+            console.log("✅ Modelo COCO-SSD cargado correctamente");
             
-            modoIA = true;
-            updateStatus("✅ IA lista para detectar personas y vehículos");
-            document.getElementById('video-container').classList.add('activo');
-            
-            // Habilitar botón de detección
-            btnDetectar.disabled = false;
-            btnIcon.textContent = "✨";
-            btnText.textContent = "Contar con IA";
-            
-            return true;
+            // Ocultar loading overlay después de un breve delay
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                showStatus("✅ Modelo de IA listo para analizar imágenes", "success");
+            }, 500);
             
         } catch (error) {
-            console.error("Error al cargar modelo:", error);
-            modoIA = false;
+            console.error("Error cargando modelo:", error);
+            loadingText.textContent = "Error cargando modelo";
+            showStatus("❌ No se pudo cargar el modelo de IA. Recarga la página.", "error");
             
-            // Mostrar alerta de modo manual
-            document.getElementById('manual-mode-alert').style.display = 'block';
-            
-            // Cambiar texto del botón
-            btnIcon.textContent = "👁️";
-            btnText.textContent = "Usar Cámara (Modo Manual)";
-            btnDetectar.disabled = false;
-            
-            updateStatus("⚠️ Usando modo manual - IA no disponible", 'warning');
-            return false;
+            // Ocultar loading después de 3 segundos
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 3000);
         }
     }
 
-    // Actualizar estado
-    function updateStatus(message, type = 'info') {
-        const spinner = statusElement.querySelector('.loading-spinner');
+    // Mostrar mensaje de estado
+    function showStatus(message, type = "info") {
+        statusMessage.textContent = message;
+        statusMessage.className = `status-message status-${type}`;
+        statusMessage.style.display = 'block';
         
-        statusText.textContent = message;
-        
-        // Remover clases previas
-        statusElement.classList.remove('error-message', 'success-message', 'status-ia');
-        
-        // Aplicar clase según tipo
-        if (type === 'error') {
-            statusElement.classList.add('error-message');
-            spinner.style.display = 'none';
-        } else if (type === 'success') {
-            statusElement.classList.add('success-message');
-            spinner.style.display = 'none';
-        } else if (type === 'warning') {
-            statusElement.classList.add('manual-mode');
-            spinner.style.display = 'inline-block';
-            spinner.style.borderTopColor = '#ffc107';
-        } else {
-            statusElement.classList.add('status-ia');
-            spinner.style.display = 'inline-block';
-            spinner.style.borderTopColor = '#3498db';
+        // Auto-ocultar después de 5 segundos (excepto errores)
+        if (type !== "error") {
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 5000);
         }
-        
-        // Actualizar timestamp
-        updateTimestamp();
     }
 
-    // Actualizar timestamp
-    function updateTimestamp() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString();
-        document.getElementById('timestamp').textContent = `Última actualización: ${timeString}`;
-    }
+    // Manejar arrastrar y soltar
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+    });
 
-    // Función principal de detección
-    async function detectarAhora() {
-        if (procesando) {
-            alert("⚠️ Ya se está procesando una detección. Espere un momento.");
-            return;
-        }
+    uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
         
-        if (!modoIA) {
-            // Modo manual: solo mostrar vista de cámara
-            alert("📸 Modo manual activado. Use los botones +/- para contar manualmente mientras observa la cámara.");
-            return;
+        if (e.dataTransfer.files.length > 0) {
+            handleFileSelect(e.dataTransfer.files[0]);
         }
-        
-        procesando = true;
-        updateStatus("🔍 Analizando imagen con IA...");
-        btnDetectar.disabled = true;
+    });
+
+    // Manejar selección de archivo
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+        }
+    });
+
+    // Cargar imagen de ejemplo
+    async function loadSampleImage(url) {
+        showStatus("📥 Cargando imagen de ejemplo...", "info");
         
         try {
+            // Crear imagen
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            
+            img.onload = () => {
+                handleImageLoad(img, "Imagen de ejemplo");
+            };
+            
+            img.onerror = () => {
+                showStatus("❌ No se pudo cargar la imagen de ejemplo", "error");
+            };
+            
+            img.src = url;
+            
+        } catch (error) {
+            showStatus("❌ Error cargando imagen: " + error.message, "error");
+        }
+    }
+
+    // Manejar selección de archivo
+    function handleFileSelect(file) {
+        // Validar tipo de archivo
+        if (!file.type.match('image.*')) {
+            showStatus("❌ Por favor selecciona una imagen (JPG, PNG, etc.)", "error");
+            return;
+        }
+        
+        // Validar tamaño (5MB máximo)
+        if (file.size > 5 * 1024 * 1024) {
+            showStatus("❌ La imagen es demasiado grande (máximo 5MB)", "error");
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                handleImageLoad(img, file.name);
+            };
+            img.src = e.target.result;
+        };
+        
+        reader.readAsDataURL(file);
+    }
+
+    // Manejar imagen cargada
+    function handleImageLoad(img, filename) {
+        currentImage = img;
+        
+        // Mostrar vista previa
+        previewImage.src = img.src;
+        imagePreviewContainer.style.display = 'block';
+        
+        // Mostrar información del archivo
+        fileName.textContent = filename;
+        fileSize.textContent = `(${Math.round(img.naturalWidth)}×${Math.round(img.naturalHeight)})`;
+        fileInfo.style.display = 'block';
+        
+        // Habilitar botón de análisis
+        analyzeButton.disabled = false;
+        
+        // Ocultar resultados previos
+        resultsContainer.style.display = 'none';
+        accuracyBadge.style.display = 'none';
+        
+        // Limpiar canvas
+        const ctx = detectionCanvas.getContext('2d');
+        ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+        
+        // Ajustar tamaño del canvas
+        detectionCanvas.width = img.width;
+        detectionCanvas.height = img.height;
+        
+        showStatus("✅ Imagen cargada. Haz clic en 'Analizar Imagen con IA'", "success");
+        
+        // Scroll a la imagen
+        imagePreviewContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Analizar imagen
+    async function analyzeImage() {
+        if (!model || !currentImage) {
+            showStatus("❌ Primero carga una imagen", "error");
+            return;
+        }
+        
+        analyzeButton.disabled = true;
+        showStatus("🔍 Analizando imagen con IA...", "info");
+        
+        try {
+            // Mostrar loading
+            loadingOverlay.style.display = 'flex';
+            loadingText.textContent = "Analizando imagen...";
+            
             // Realizar detección
-            const results = await detector.detect(video);
+            const detections = await model.detect(currentImage);
+            currentDetections = detections;
             
-            let adultos = 0, niños = 0, carros = 0;
-            const detecciones = [];
+            // Procesar resultados
+            processDetections(detections);
             
-            results.forEach(detection => {
-                if (detection.confidence < 0.4) return; // Filtro de confianza
-                
-                const [x, y, width, height] = detection.bbox;
-                const label = detection.label.toLowerCase();
-                
-                // Dibujar en canvas
-                drawDetection(x, y, width, height, label, detection.confidence);
-                
-                if (label === 'person') {
-                    // Distinguir adulto/niño por altura relativa
-                    if (height < video.videoHeight * 0.4) {
-                        niños++;
-                        detecciones.push({tipo: 'niño', confianza: detection.confidence});
-                    } else {
-                        adultos++;
-                        detecciones.push({tipo: 'adulto', confianza: detection.confidence});
-                    }
-                } else if ((label === 'car' || label === 'truck') && 
-                          document.getElementById('modo-deteccion').value !== 'solo-personas') {
-                    carros++;
-                    detecciones.push({tipo: 'vehículo', confianza: detection.confidence});
-                }
-            });
-            
-            // Filtrar según modo seleccionado
-            const modo = document.getElementById('modo-deteccion').value;
-            if (modo === 'solo-personas') carros = 0;
-            if (modo === 'solo-vehiculos') { adultos = 0; niños = 0; }
-            
-            // Guardar para historial
-            detectionHistory.push({
-                timestamp: new Date().toISOString(),
-                resultados: results,
-                conteo: { adultos, niños, carros }
-            });
+            // Dibujar detecciones en canvas
+            drawDetections(detections);
             
             // Mostrar resultados
-            mostrarResultadosDeteccion(adultos, niños, carros, detecciones);
+            showDetectionResults(detections);
+            
+            showStatus("✅ Análisis completado", "success");
             
         } catch (error) {
-            console.error("Error en detección:", error);
-            updateStatus("❌ Error en detección", 'error');
-            alert("Error al procesar la imagen. Intente nuevamente.");
+            console.error("Error en análisis:", error);
+            showStatus("❌ Error analizando imagen: " + error.message, "error");
         } finally {
-            procesando = false;
-            btnDetectar.disabled = false;
+            // Ocultar loading
+            loadingOverlay.style.display = 'none';
+            analyzeButton.disabled = false;
         }
     }
 
-    // Dibujar detección en canvas
-    function drawDetection(x, y, width, height, label, confidence) {
-        if (!ctx) return;
+    // Procesar detecciones
+    function processDetections(detections) {
+        let adultos = 0;
+        let niños = 0;
+        let carros = 0;
+        let otros = 0;
+        let totalConfidence = 0;
         
-        // Determinar color
-        let color;
-        if (label === 'person') {
-            color = height < video.videoHeight * 0.4 ? '#2ecc71' : '#3498db';
-        } else if (label === 'car' || label === 'truck') {
-            color = '#e74c3c';
-        } else {
-            color = '#f39c12';
-        }
-        
-        // Dibujar rectángulo
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, width, height);
-        
-        // Dibujar fondo para etiqueta
-        ctx.fillStyle = color;
-        const text = `${label} ${Math.round(confidence * 100)}%`;
-        const textWidth = ctx.measureText(text).width;
-        ctx.fillRect(x, y - 20, textWidth + 10, 20);
-        
-        // Dibujar texto
-        ctx.fillStyle = 'white';
-        ctx.font = '12px Arial';
-        ctx.fillText(text, x + 5, y - 5);
-        
-        // Limpiar después de 3 segundos
-        setTimeout(() => {
-            if (ctx) {
-                ctx.clearRect(x - 5, y - 25, textWidth + 20, height + 30);
+        detections.forEach(det => {
+            totalConfidence += det.score;
+            
+            if (det.class === 'person') {
+                // Distinguir entre adulto y niño basado en el tamaño del bounding box
+                const boxHeight = det.bbox[3];
+                const imageHeight = currentImage.height;
+                
+                if (boxHeight < imageHeight * 0.3) {
+                    niños++;
+                } else {
+                    adultos++;
+                }
+            } else if (det.class === 'car' || det.class === 'truck') {
+                carros++;
+            } else {
+                otros++;
             }
-        }, 3000);
+        });
+        
+        const averageConfidence = detections.length > 0 ? 
+            (totalConfidence / detections.length) * 100 : 0;
+        
+        lastDetectionResults = {
+            adultos,
+            niños,
+            carros,
+            otros,
+            totalObjects: detections.length,
+            averageConfidence: Math.round(averageConfidence),
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    // Dibujar detecciones en canvas
+    function drawDetections(detections) {
+        const ctx = detectionCanvas.getContext('2d');
+        const imageWidth = currentImage.width;
+        const imageHeight = currentImage.height;
+        
+        // Limpiar canvas
+        ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+        
+        // Configurar estilo
+        ctx.lineWidth = 2;
+        ctx.font = '14px Arial';
+        ctx.textBaseline = 'top';
+        
+        detections.forEach(det => {
+            const [x, y, width, height] = det.bbox;
+            const score = Math.round(det.score * 100);
+            const label = `${det.class} ${score}%`;
+            
+            // Determinar color según clase
+            let color;
+            if (det.class === 'person') {
+                const isChild = height < imageHeight * 0.3;
+                color = isChild ? '#2ecc71' : '#3498db';
+            } else if (det.class === 'car' || det.class === 'truck') {
+                color = '#e74c3c';
+            } else {
+                color = '#9b59b6';
+            }
+            
+            // Dibujar rectángulo
+            ctx.strokeStyle = color;
+            ctx.strokeRect(x, y, width, height);
+            
+            // Dibujar fondo para etiqueta
+            const textWidth = ctx.measureText(label).width;
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y - 20, textWidth + 10, 20);
+            
+            // Dibujar texto
+            ctx.fillStyle = 'white';
+            ctx.fillText(label, x + 5, y - 15);
+        });
+        
+        // Mostrar badge de precisión
+        if (detections.length > 0) {
+            const avgConfidence = Math.round(lastDetectionResults.averageConfidence);
+            accuracyBadge.textContent = `Precisión: ${avgConfidence}%`;
+            accuracyBadge.style.display = 'block';
+        }
     }
 
     // Mostrar resultados de detección
-    function mostrarResultadosDeteccion(adultos, niños, carros, detecciones) {
-        if (adultos === 0 && niños === 0 && carros === 0) {
-            updateStatus("👁️ No se detectaron objetos", 'warning');
-            alert("No se detectaron personas ni vehículos. Asegúrese de:\n1. Buena iluminación\n2. Objetos claramente visibles\n3. Acercarse si es necesario");
+    function showDetectionResults() {
+        if (!lastDetectionResults) return;
+        
+        const { adultos, niños, carros, otros, totalObjects, averageConfidence } = lastDetectionResults;
+        
+        // Actualizar estadísticas
+        detectionStats.innerHTML = `
+            <div class="stat-item">
+                <div class="stat-value text-primary">${adultos}</div>
+                <div class="stat-label">Adultos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value text-success">${niños}</div>
+                <div class="stat-label">Niños</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value text-danger">${carros}</div>
+                <div class="stat-label">Vehículos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #9b59b6;">${otros}</div>
+                <div class="stat-label">Otros</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #2c3e50;">${totalObjects}</div>
+                <div class="stat-label">Total Objetos</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" style="color: #f39c12;">${averageConfidence}%</div>
+                <div class="stat-label">Precisión</div>
+            </div>
+        `;
+        
+        // Mostrar contenedor de resultados
+        resultsContainer.style.display = 'block';
+        
+        // Scroll a resultados
+        resultsContainer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Agregar al conteo total
+    function addToCount() {
+        if (!lastDetectionResults) {
+            showStatus("❌ Primero analiza una imagen", "error");
             return;
         }
         
-        const confianzaPromedio = detecciones.length > 0 ? 
-            Math.round(detecciones.reduce((sum, d) => sum + d.confianza, 0) / detecciones.length * 100) : 0;
+        const { adultos, niños, carros } = lastDetectionResults;
+        const totalPersonas = adultos + niños;
         
-        const mensaje = `🎯 DETECCIÓN COMPLETADA\n\n` +
-                       `✅ Adultos: ${adultos}\n` +
-                       `👶 Niños: ${niños}\n` +
-                       `🚗 Vehículos: ${carros}\n` +
-                       `📊 Confianza: ${confianzaPromedio}%\n\n` +
-                       `¿Agregar al conteo total?`;
+        if (totalPersonas === 0 && carros === 0) {
+            showStatus("⚠️ No hay personas ni vehículos para agregar", "info");
+            return;
+        }
         
-        if (confirm(mensaje)) {
-            // Agregar al conteo
+        const confirmMessage = `¿Agregar al conteo total?\n\n` +
+                              `👥 Personas: ${totalPersonas} (${adultos} adultos + ${niños} niños)\n` +
+                              `🚗 Vehículos: ${carros}\n\n` +
+                              `Confianza: ${lastDetectionResults.averageConfidence}%`;
+        
+        if (confirm(confirmMessage)) {
+            // Actualizar conteos
             counts.adultos += adultos;
             counts.niños += niños;
             counts.carros += carros;
             
-            // Guardar en historial
-            guardarEnHistorial(adultos, niños, carros, detecciones);
-            
             // Actualizar UI
             actualizarUI();
+            
+            // Guardar en historial
+            guardarEnHistorial(adultos, niños, carros);
+            
+            // Mostrar confirmación
+            showStatus(`✅ ¡${totalPersonas} personas y ${carros} vehículos agregados al conteo!`, "success");
             
             // Efecto visual
             mostrarEfectoAgregado(adultos, niños, carros);
             
-            updateStatus(`✅ ¡${adultos+niños} personas y ${carros} vehículos agregados!`, 'success');
-        } else {
-            updateStatus("✅ IA lista para nueva detección");
-            // Limpiar canvas
-            if (ctx) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
+            // Resetear para nueva imagen
+            resetDetection();
         }
     }
 
@@ -662,39 +875,78 @@
         const elementos = [
             {id: 'adultos-val', show: a > 0},
             {id: 'niños-val', show: n > 0},
-            {id: 'carros-val', show: c > 0}
+            {id: 'carros-val', show: c > 0},
+            {id: 'total-personas', show: (a + n) > 0}
         ];
         
         elementos.forEach(item => {
             if (item.show) {
                 const el = document.getElementById(item.id);
                 el.style.color = '#27ae60';
-                setTimeout(() => el.style.color = '#2c3e50', 1000);
+                el.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    el.style.color = '';
+                    el.style.transform = 'scale(1)';
+                }, 500);
             }
         });
     }
 
-    // Guardar en historial
-    function guardarEnHistorial(adultos, niños, carros, detecciones = []) {
-        const timestamp = new Date();
-        historial.unshift({
-            timestamp: timestamp.toISOString(),
-            adultos: adultos,
-            niños: niños,
-            carros: carros,
-            total: adultos + niños,
-            detecciones: detecciones.length,
-            modo: document.getElementById('modo-deteccion').value
-        });
+    // Resetear detección actual
+    function resetDetection() {
+        currentImage = null;
+        currentDetections = [];
+        lastDetectionResults = null;
         
-        // Limitar historial
-        if (historial.length > 10) historial = historial.slice(0, 10);
+        // Limpiar vista previa
+        previewImage.src = '';
+        imagePreviewContainer.style.display = 'none';
+        fileInfo.style.display = 'none';
+        
+        // Limpiar canvas
+        const ctx = detectionCanvas.getContext('2d');
+        ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
+        accuracyBadge.style.display = 'none';
+        
+        // Deshabilitar botón de análisis
+        analyzeButton.disabled = true;
+        
+        // Ocultar resultados
+        resultsContainer.style.display = 'none';
+        
+        // Resetear input de archivo
+        fileInput.value = '';
+        
+        showStatus("✅ Listo para nueva imagen", "info");
+    }
+
+    // Guardar en historial
+    function guardarEnHistorial(adultos, niños, carros) {
+        const timestamp = new Date();
+        const entry = {
+            timestamp: timestamp.toISOString(),
+            adultos,
+            niños,
+            carros,
+            totalPersonas: adultos + niños,
+            image: currentImage ? 'guardada' : 'no disponible'
+        };
+        
+        historial.unshift(entry);
+        
+        // Limitar a 10 entradas
+        if (historial.length > 10) {
+            historial = historial.slice(0, 10);
+        }
         
         // Mostrar historial
         mostrarHistorial();
         
         // Guardar en localStorage
         guardarEnStorage();
+        
+        // Actualizar timestamp
+        updateTimestamp();
     }
 
     // Mostrar historial
@@ -713,18 +965,23 @@
         historial.forEach((item, index) => {
             const fecha = new Date(item.timestamp);
             const hora = fecha.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const fechaStr = fecha.toLocaleDateString();
             
             const div = document.createElement('div');
             div.className = 'history-item';
             div.innerHTML = `
-                <div class="d-flex justify-content-between">
-                    <small><strong>${hora}</strong></small>
-                    <small class="text-muted">${fecha.toLocaleDateString()}</small>
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <strong>${hora}</strong> - ${fechaStr}
+                    </div>
+                    <div>
+                        <span class="badge-adult detection-badge">${item.adultos}A</span>
+                        <span class="badge-child detection-badge">${item.niños}N</span>
+                        <span class="badge-car detection-badge">${item.carros}V</span>
+                    </div>
                 </div>
-                <div class="mt-1">
-                    <span class="badge-adult detection-badge">Adultos: ${item.adultos}</span>
-                    <span class="badge-child detection-badge">Niños: ${item.niños}</span>
-                    <span class="badge-car detection-badge">Vehículos: ${item.carros}</span>
+                <div class="mt-2 small text-muted">
+                    Total: ${item.totalPersonas} personas
                 </div>
             `;
             lista.appendChild(div);
@@ -736,7 +993,7 @@
         const nuevoValor = counts[tipo] + valor;
         
         if (nuevoValor < 0) {
-            alert("❌ El valor no puede ser negativo");
+            showStatus("❌ El valor no puede ser negativo", "error");
             return;
         }
         
@@ -744,7 +1001,7 @@
         actualizarUI();
         guardarEnStorage();
         
-        // Feedback visual
+        // Efecto visual
         const elemento = document.getElementById(`${tipo}-val`);
         elemento.style.color = valor > 0 ? '#27ae60' : '#e74c3c';
         elemento.style.transform = 'scale(1.1)';
@@ -752,6 +1009,8 @@
             elemento.style.color = '';
             elemento.style.transform = 'scale(1)';
         }, 300);
+        
+        showStatus(`✅ ${tipo} actualizado: ${counts[tipo]}`, "success");
     }
 
     // Actualizar toda la interfaz
@@ -770,53 +1029,45 @@
         updateTimestamp();
     }
 
-    // Alternar historial completo
-    function toggleHistorial() {
-        const lista = document.getElementById('historial-lista');
-        const boton = document.querySelector('#historial-container button');
-        
-        if (lista.style.maxHeight && lista.style.maxHeight !== 'none') {
-            lista.style.maxHeight = 'none';
-            lista.style.overflow = 'visible';
-            boton.textContent = 'Ver Menos';
-        } else {
-            lista.style.maxHeight = '200px';
-            lista.style.overflow = 'auto';
-            boton.textContent = 'Ver Todo';
-        }
+    // Actualizar timestamp
+    function updateTimestamp() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString();
+        document.getElementById('timestamp').textContent = `Última actualización: ${timeString}`;
     }
 
     // Confirmar limpieza
     function confirmarLimpiar() {
-        const total = counts.adultos + counts.niños + counts.carros;
+        const totalPersonas = counts.adultos + counts.niños;
+        const totalVehículos = counts.carros;
         
-        if (total === 0) {
-            alert("El conteo ya está en cero.");
+        if (totalPersonas === 0 && totalVehículos === 0) {
+            showStatus("✅ El conteo ya está en cero", "info");
             return;
         }
         
         const confirmacion = confirm(
-            `⚠️ ¿REINICIAR CONTEO?\n\n` +
-            `Actualmente registrado:\n` +
-            `👥 ${counts.adultos + counts.niños} personas\n` +
-            `🚗 ${counts.carros} vehículos\n\n` +
+            `⚠️ ¿REINICIAR TODO EL CONTEO?\n\n` +
+            `Esto eliminará:\n` +
+            `👥 ${totalPersonas} personas registradas\n` +
+            `🚗 ${totalVehículos} vehículos registrados\n` +
+            `📝 ${historial.length} análisis del historial\n\n` +
             `Esta acción no se puede deshacer.`
         );
         
         if (confirmacion) {
             counts = { adultos: 0, niños: 0, carros: 0 };
             historial = [];
-            detectionHistory = [];
             actualizarUI();
+            resetDetection();
+            
+            // Ocultar contenedores
             document.getElementById('historial-container').style.display = 'none';
-            localStorage.removeItem('iglesiaConteo');
             
-            // Limpiar canvas
-            if (ctx) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-            }
+            // Limpiar localStorage
+            localStorage.removeItem('iglesiaConteoImagen');
             
-            alert("✅ Conteo reiniciado exitosamente.");
+            showStatus("✅ Todo el conteo ha sido reiniciado", "success");
         }
     }
 
@@ -830,6 +1081,7 @@
         
         // Encabezado
         csvContent += "REPORTE DE ASISTENCIA - IGLESIA IMPACTO PRO\r\n";
+        csvContent += "Sistema de Conteo por Imagen v3.0\r\n";
         csvContent += `Fecha de generación: ${fecha.toLocaleString()}\r\n\r\n`;
         
         // Resumen general
@@ -840,14 +1092,14 @@
         csvContent += `Total Personas,${counts.adultos + counts.niños}\r\n`;
         csvContent += `Vehículos,${counts.carros}\r\n\r\n`;
         
-        // Historial
+        // Historial de análisis
         if (historial.length > 0) {
-            csvContent += "HISTORIAL DE DETECCIONES\r\n";
-            csvContent += "Fecha,Hora,Adultos,Niños,Vehículos,Total,Modo\r\n";
+            csvContent += "HISTORIAL DE ANÁLISIS POR IMAGEN\r\n";
+            csvContent += "Fecha,Hora,Adultos,Niños,Vehículos,Total Personas\r\n";
             
             historial.forEach(item => {
                 const d = new Date(item.timestamp);
-                csvContent += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${item.adultos},${item.niños},${item.carros},${item.total},${item.modo}\r\n`;
+                csvContent += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${item.adultos},${item.niños},${item.carros},${item.totalPersonas}\r\n`;
             });
         }
         
@@ -855,13 +1107,12 @@
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `asistencia_${fechaStr}_${horaStr}.csv`);
+        link.setAttribute("download", `reporte_asistencia_${fechaStr}_${horaStr}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         
-        // Feedback
-        alert(`✅ Reporte exportado exitosamente`);
+        showStatus("✅ Reporte exportado exitosamente", "success");
     }
 
     // Guardar en localStorage
@@ -870,10 +1121,10 @@
             counts: counts,
             historial: historial,
             fechaGuardado: new Date().toISOString(),
-            version: '2.2'
+            version: '3.0'
         };
         try {
-            localStorage.setItem('iglesiaConteo', JSON.stringify(data));
+            localStorage.setItem('iglesiaConteoImagen', JSON.stringify(data));
         } catch (e) {
             console.warn("No se pudo guardar en localStorage:", e);
         }
@@ -882,7 +1133,7 @@
     // Cargar desde localStorage
     function cargarDesdeStorage() {
         try {
-            const guardado = localStorage.getItem('iglesiaConteo');
+            const guardado = localStorage.getItem('iglesiaConteoImagen');
             if (guardado) {
                 const data = JSON.parse(guardado);
                 counts = data.counts || counts;
@@ -900,56 +1151,28 @@
         }
     }
 
-    // Actualizar información del sistema
-    function updateSystemInfo() {
-        const info = `IA: ${modoIA ? 'Disponible' : 'Manual'} | Navegador: ${navigator.userAgent.split(' ')[0]}`;
-        document.getElementById('system-info').textContent = info;
-    }
-
     // Inicializar aplicación
     async function initApp() {
         console.log("Iniciando aplicación...");
         
-        // Inicializar elementos del DOM
-        initDOMElements();
-        
         // Cargar datos guardados
         cargarDesdeStorage();
         
-        // Configurar cámara
-        const cameraReady = await setupCamera();
-        
-        if (cameraReady) {
-            // Configurar modelo de IA (si está disponible)
-            await setupModel();
-        } else {
-            // Modo manual si no hay cámara
-            modoIA = false;
-            document.getElementById('manual-mode-alert').style.display = 'block';
-            btnIcon.textContent = "👁️";
-            btnText.textContent = "Modo Manual";
-            btnDetectar.disabled = false;
-        }
+        // Cargar modelo de IA
+        await loadModel();
         
         // Actualizar información del sistema
-        updateSystemInfo();
+        document.getElementById('systemInfo').textContent = 
+            `Modelo: COCO-SSD | TF.js ${tf.version.tfjs}`;
         
-        console.log("Aplicación inicializada");
+        console.log("Aplicación inicializada correctamente");
     }
 
-    // Limpiar recursos
-    window.addEventListener('beforeunload', () => {
-        if (video && video.srcObject) {
-            video.srcObject.getTracks().forEach(track => track.stop());
-        }
-        guardarEnStorage();
-    });
-
-    // Auto-guardar
-    setInterval(guardarEnStorage, 30000); // Cada 30 segundos
+    // Auto-guardar cada 30 segundos
+    setInterval(guardarEnStorage, 30000);
 
     // Iniciar cuando cargue la página
     window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
-</html>
+    </html>
