@@ -3,1176 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro Iglesia Impacto Pro - IA por Imagen</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2"></script>
-    <style>
-        body { 
-            background-color: #f8f9fa; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .card { 
-            border-radius: 15px; 
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            border: none;
-            transition: transform 0.3s;
-            margin-bottom: 1.5rem;
-        }
-        .card:hover {
-            transform: translateY(-3px);
-        }
-        .header-title {
-            color: #2c3e50;
-            font-weight: 800;
-            text-align: center;
-            margin-bottom: 2rem;
-            padding-bottom: 15px;
-            border-bottom: 3px solid #3498db;
-        }
-        .upload-area {
-            border: 3px dashed #3498db;
-            border-radius: 12px;
-            padding: 40px 20px;
-            text-align: center;
-            background-color: #f8f9fa;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin-bottom: 20px;
-        }
-        .upload-area:hover {
-            background-color: #e8f4f8;
-            border-color: #2980b9;
-        }
-        .upload-area.dragover {
-            background-color: #d4edda;
-            border-color: #28a745;
-        }
-        .image-container {
-            position: relative;
-            width: 100%;
-            max-width: 600px;
-            margin: 0 auto 20px;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        #previewImage {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        .detection-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-        .counter-display {
-            font-size: 2.8rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 10px 0;
-            transition: all 0.3s;
-        }
-        .counter-card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            height: 100%;
-        }
-        .total-card {
-            background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
-            color: white;
-            padding: 25px 20px;
-        }
-        .total-number {
-            font-size: 3.2rem;
-            font-weight: bold;
-        }
-        .btn-custom {
-            font-weight: 600;
-            padding: 12px 24px;
-            border-radius: 10px;
-            transition: all 0.3s;
-            border: none;
-            font-size: 1.1rem;
-        }
-        .btn-custom:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .btn-primary-custom {
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            color: white;
-        }
-        .btn-success-custom {
-            background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
-            color: white;
-        }
-        .btn-danger-custom {
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-        }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            flex-direction: column;
-        }
-        .spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid #f3f3f3;
-            border-top: 6px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .status-message {
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            text-align: center;
-            font-weight: 500;
-        }
-        .status-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .status-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .status-info {
-            background-color: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        .history-item {
-            background: white;
-            border-left: 4px solid #3498db;
-            padding: 12px 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .detection-badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin: 2px;
-            color: white;
-            font-weight: 500;
-        }
-        .badge-adult { background: #3498db; }
-        .badge-child { background: #2ecc71; }
-        .badge-car { background: #e74c3c; }
-        .badge-other { background: #9b59b6; }
-        
-        .detection-info {
-            font-size: 0.9rem;
-            color: #666;
-            text-align: center;
-            margin-top: 10px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        
-        .instructions {
-            background: linear-gradient(135deg, #e8f4f8 0%, #f0f7fa 100%);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-            border-left: 5px solid #3498db;
-        }
-        
-        .instructions h5 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        
-        .instructions ol {
-            padding-left: 20px;
-            margin-bottom: 0;
-        }
-        
-        .instructions li {
-            margin-bottom: 8px;
-            line-height: 1.5;
-        }
-        
-        .sample-images {
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        .sample-img {
-            width: 120px;
-            height: 90px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin: 0 5px 10px;
-            cursor: pointer;
-            border: 2px solid transparent;
-            transition: all 0.3s;
-        }
-        
-        .sample-img:hover {
-            transform: scale(1.05);
-            border-color: #3498db;
-        }
-        
-        @media (max-width: 768px) {
-            .counter-display { font-size: 2.2rem; }
-            .total-number { font-size: 2.5rem; }
-            .btn-custom { padding: 10px 20px; font-size: 1rem; }
-            .image-container { max-width: 100%; }
-        }
-        
-        .file-info {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-size: 0.9rem;
-            color: #666;
-        }
-        
-        .accuracy-badge {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(52, 152, 219, 0.9);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            z-index: 10;
-        }
-        
-        .detection-stats {
-            display: flex;
-            justify-content: space-around;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 15px 0;
-        }
-        
-        .stat-item {
-            text-align: center;
-            padding: 10px;
-            border-radius: 8px;
-            background: #f8f9fa;
-            flex: 1;
-            min-width: 120px;
-        }
-        
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .stat-label {
-            font-size: 0.85rem;
-            color: #666;
-            margin-top: 5px;
-        }
-    </style>
+    <title>Estadísticas de Asistencia - Impacto SPS</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
-
-<!-- Loading Overlay -->
-<div id="loadingOverlay" class="loading-overlay">
-    <div class="spinner"></div>
-    <h4 id="loadingText">Cargando modelo de IA...</h4>
-    <p class="text-muted mt-2">Por favor espere, esto puede tomar unos segundos</p>
-</div>
-
-<div class="container py-4">
-    <h1 class="header-title">⛪ Sistema de Conteo Inteligente por Imagen</h1>
-    
-    <!-- Instrucciones -->
-    <div class="instructions">
-        <h5>📋 ¿Cómo funciona?</h5>
-        <ol>
-            <li><strong>Sube una foto</strong> de la zona que quieres analizar (puedes arrastrar o hacer clic)</li>
-            <li><strong>La IA detectará automáticamente</strong> personas y vehículos en la imagen</li>
-            <li><strong>Revisa los resultados</strong> y confirma para agregarlos al conteo total</li>
-            <li><strong>Usa los botones +/-</strong> para ajustar manualmente si es necesario</li>
-            <li><strong>Exporta el reporte</strong> en formato CSV al finalizar</li>
-        </ol>
-        <div class="sample-images">
-            <p class="mb-2"><small><i>Prueba con estas imágenes de ejemplo:</i></small></p>
-            <img src="https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=300&fit=crop" class="sample-img" onclick="loadSampleImage(this.src)" alt="Grupo de personas">
-            <img src="https://images.unsplash.com/photo-1543269865-cbf427effbad?w=400&h=300&fit=crop" class="sample-img" onclick="loadSampleImage(this.src)" alt="Estacionamiento">
-            <img src="https://images.unsplash.com/photo-1531058020387-3be344556be6?w-400&h=300&fit=crop" class="sample-img" onclick="loadSampleImage(this.src)" alt="Congregación">
-        </div>
-    </div>
-    
-    <!-- Área de Subida -->
-    <div class="card p-4">
-        <h5 class="text-center mb-3">📤 Sube una Imagen para Analizar</h5>
-        
-        <div id="uploadArea" class="upload-area">
-            <div class="mb-3">
-                <i class="bi bi-cloud-arrow-up" style="font-size: 3rem; color: #3498db;"></i>
-                <h5>Arrastra y suelta tu imagen aquí</h5>
-                <p class="text-muted">O haz clic para seleccionar un archivo</p>
-                <p class="text-muted small">Formatos: JPG, PNG, WEBP (Máx. 5MB)</p>
-            </div>
-            <input type="file" id="fileInput" accept="image/*" class="d-none">
-            <button class="btn btn-primary-custom btn-custom" onclick="document.getElementById('fileInput').click()">
-                📁 Seleccionar Imagen
-            </button>
-        </div>
-        
-        <!-- Información del archivo -->
-        <div id="fileInfo" class="file-info" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center">
-                <span id="fileName"></span>
-                <span id="fileSize"></span>
-            </div>
-        </div>
-        
-        <!-- Vista previa de imagen -->
-        <div id="imagePreviewContainer" class="image-container" style="display: none;">
-            <img id="previewImage" src="" alt="Vista previa">
-            <canvas id="detectionCanvas" class="detection-canvas"></canvas>
-            <div id="accuracyBadge" class="accuracy-badge" style="display: none;"></div>
-        </div>
-        
-        <!-- Botón de análisis -->
-        <div class="text-center mt-3">
-            <button id="analyzeButton" class="btn btn-success-custom btn-custom" onclick="analyzeImage()" disabled>
-                🔍 Analizar Imagen con IA
-            </button>
-        </div>
-        
-        <!-- Mensajes de estado -->
-        <div id="statusMessage" class="status-message" style="display: none;"></div>
-    </div>
-    
-    <!-- Resultados de Detección -->
-    <div id="resultsContainer" style="display: none;">
-        <div class="card p-4">
-            <h5 class="text-center mb-3">🎯 Resultados del Análisis</h5>
-            
-            <div class="detection-stats" id="detectionStats">
-                <!-- Estadísticas se llenan aquí -->
-            </div>
-            
-            <div class="text-center mt-4">
-                <button class="btn btn-success-custom btn-custom me-2" onclick="addToCount()">
-                    ✅ Agregar al Conteo Total
-                </button>
-                <button class="btn btn-outline-secondary" onclick="resetDetection()">
-                    🔄 Analizar Otra Imagen
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Resumen Total -->
-    <div class="card p-4 total-card">
-        <h5 class="text-center text-white mb-4">📊 RESUMEN TOTAL DEL EVENTO</h5>
-        <div class="row text-center">
-            <div class="col-md-6 mb-3 mb-md-0">
-                <small class="text-white-50">Total Personas</small>
-                <div class="total-number" id="total-personas">0</div>
-            </div>
-            <div class="col-md-6">
-                <small class="text-white-50">Total Vehículos</small>
-                <div class="total-number" id="total-carros">0</div>
-            </div>
-        </div>
-        <div class="text-center mt-3">
-            <small class="text-white-50" id="timestamp">Última actualización: --:--:--</small>
-        </div>
-    </div>
-
-    <!-- Contadores Manuales -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="counter-card">
-                <h6 class="text-center text-primary mb-3">👨‍👩‍👦 Adultos</h6>
-                <div class="counter-display text-center" id="adultos-val">0</div>
-                <div class="d-flex justify-content-between mt-3">
-                    <button class="btn btn-danger-custom btn-custom" onclick="cambiar('adultos', -1)" style="width: 48%;">-</button>
-                    <button class="btn btn-success-custom btn-custom" onclick="cambiar('adultos', 1)" style="width: 48%;">+</button>
+    <div class="container">
+        <header>
+            <div class="logo-container">
+                <div class="logo">
+                    <img src="https://storage.e.jimdo.com/cdn-cgi/image/quality=85,fit=scale-down,format=auto,trim=0;0;0;0,width=640,height=495/image/503664858/cf400876-ddf7-4079-8ec0-6b347e9dae80.png" alt="Impacto SPS Logo">
+                </div>
+                <div class="church-name">
+                    <h1>IMPACTO SPS</h1>
+                    <p class="subtitle">Iglesia Cristiana</p>
                 </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="counter-card">
-                <h6 class="text-center text-success mb-3">👶 Niños</h6>
-                <div class="counter-display text-center" id="niños-val">0</div>
-                <div class="d-flex justify-content-between mt-3">
-                    <button class="btn btn-danger-custom btn-custom" onclick="cambiar('niños', -1)" style="width: 48%;">-</button>
-                    <button class="btn btn-success-custom btn-custom" onclick="cambiar('niños', 1)" style="width: 48%;">+</button>
-                </div>
+        </header>
+        
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-tab="dashboard">
+                <i class="fas fa-chart-line"></i>Dashboard
+            </div>
+            <div class="nav-tab" data-tab="registro">
+                <i class="fas fa-edit"></i>Registrar
+            </div>
+            <div class="nav-tab" data-tab="historico">
+                <i class="fas fa-history"></i>Histórico
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="counter-card">
-                <h6 class="text-center text-danger mb-3">🚗 Vehículos</h6>
-                <div class="counter-display text-center" id="carros-val">0</div>
-                <div class="d-flex justify-content-between mt-3">
-                    <button class="btn btn-danger-custom btn-custom" onclick="cambiar('carros', -1)" style="width: 48%;">-</button>
-                    <button class="btn btn-success-custom btn-custom" onclick="cambiar('carros', 1)" style="width: 48%;">+</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Historial de Detecciones -->
-    <div class="card p-4 mb-4" id="historial-container" style="display: none;">
-        <h5 class="mb-3">📝 Historial de Análisis</h5>
-        <div id="historial-lista">
-            <!-- Historial se carga aquí -->
-        </div>
-    </div>
-
-    <!-- Botones de Acción -->
-    <div class="row g-3">
-        <div class="col-md-6">
-            <button class="btn btn-dark btn-custom w-100 mb-2" onclick="exportarCSV()">
-                💾 Exportar Reporte CSV
-            </button>
-        </div>
-        <div class="col-md-6">
-            <button class="btn btn-outline-danger btn-custom w-100 mb-2" onclick="confirmarLimpiar()">
-                🗑️ Reiniciar Todo
-            </button>
-        </div>
-    </div>
-
-    <!-- Información del Sistema -->
-    <div class="text-center mt-4 small text-muted">
-        <p>Sistema de Conteo por Imagen v3.0 | Iglesia Impacto Pro<br>
-        <span id="systemInfo">Modelo de IA: COCO-SSD</span></p>
-    </div>
-</div>
-
-<script>
-    // Variables globales
-    let model = null;
-    let currentImage = null;
-    let currentDetections = [];
-    let counts = { adultos: 0, niños: 0, carros: 0 };
-    let historial = [];
-    let lastDetectionResults = null;
-
-    // Elementos del DOM
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const loadingText = document.getElementById('loadingText');
-    const uploadArea = document.getElementById('uploadArea');
-    const fileInput = document.getElementById('fileInput');
-    const fileInfo = document.getElementById('fileInfo');
-    const fileName = document.getElementById('fileName');
-    const fileSize = document.getElementById('fileSize');
-    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-    const previewImage = document.getElementById('previewImage');
-    const detectionCanvas = document.getElementById('detectionCanvas');
-    const accuracyBadge = document.getElementById('accuracyBadge');
-    const analyzeButton = document.getElementById('analyzeButton');
-    const statusMessage = document.getElementById('statusMessage');
-    const resultsContainer = document.getElementById('resultsContainer');
-    const detectionStats = document.getElementById('detectionStats');
-
-    // Inicializar modelo de IA
-    async function loadModel() {
-        try {
-            loadingText.textContent = "Cargando modelo COCO-SSD...";
-            
-            // Cargar modelo COCO-SSD directamente
-            model = await cocoSsd.load();
-            
-            console.log("✅ Modelo COCO-SSD cargado correctamente");
-            
-            // Ocultar loading overlay después de un breve delay
-            setTimeout(() => {
-                loadingOverlay.style.display = 'none';
-                showStatus("✅ Modelo de IA listo para analizar imágenes", "success");
-            }, 500);
-            
-        } catch (error) {
-            console.error("Error cargando modelo:", error);
-            loadingText.textContent = "Error cargando modelo";
-            showStatus("❌ No se pudo cargar el modelo de IA. Recarga la página.", "error");
-            
-            // Ocultar loading después de 3 segundos
-            setTimeout(() => {
-                loadingOverlay.style.display = 'none';
-            }, 3000);
-        }
-    }
-
-    // Mostrar mensaje de estado
-    function showStatus(message, type = "info") {
-        statusMessage.textContent = message;
-        statusMessage.className = `status-message status-${type}`;
-        statusMessage.style.display = 'block';
         
-        // Auto-ocultar después de 5 segundos (excepto errores)
-        if (type !== "error") {
-            setTimeout(() => {
-                statusMessage.style.display = 'none';
-            }, 5000);
-        }
-    }
-
-    // Manejar arrastrar y soltar
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
-    });
-
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
-    });
-
-    uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        uploadArea.classList.remove('dragover');
-        
-        if (e.dataTransfer.files.length > 0) {
-            handleFileSelect(e.dataTransfer.files[0]);
-        }
-    });
-
-    // Manejar selección de archivo
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleFileSelect(e.target.files[0]);
-        }
-    });
-
-    // Cargar imagen de ejemplo
-    async function loadSampleImage(url) {
-        showStatus("📥 Cargando imagen de ejemplo...", "info");
-        
-        try {
-            // Crear imagen
-            const img = new Image();
-            img.crossOrigin = "anonymous";
-            
-            img.onload = () => {
-                handleImageLoad(img, "Imagen de ejemplo");
-            };
-            
-            img.onerror = () => {
-                showStatus("❌ No se pudo cargar la imagen de ejemplo", "error");
-            };
-            
-            img.src = url;
-            
-        } catch (error) {
-            showStatus("❌ Error cargando imagen: " + error.message, "error");
-        }
-    }
-
-    // Manejar selección de archivo
-    function handleFileSelect(file) {
-        // Validar tipo de archivo
-        if (!file.type.match('image.*')) {
-            showStatus("❌ Por favor selecciona una imagen (JPG, PNG, etc.)", "error");
-            return;
-        }
-        
-        // Validar tamaño (5MB máximo)
-        if (file.size > 5 * 1024 * 1024) {
-            showStatus("❌ La imagen es demasiado grande (máximo 5MB)", "error");
-            return;
-        }
-        
-        const reader = new FileReader();
-        
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                handleImageLoad(img, file.name);
-            };
-            img.src = e.target.result;
-        };
-        
-        reader.readAsDataURL(file);
-    }
-
-    // Manejar imagen cargada
-    function handleImageLoad(img, filename) {
-        currentImage = img;
-        
-        // Mostrar vista previa
-        previewImage.src = img.src;
-        imagePreviewContainer.style.display = 'block';
-        
-        // Mostrar información del archivo
-        fileName.textContent = filename;
-        fileSize.textContent = `(${Math.round(img.naturalWidth)}×${Math.round(img.naturalHeight)})`;
-        fileInfo.style.display = 'block';
-        
-        // Habilitar botón de análisis
-        analyzeButton.disabled = false;
-        
-        // Ocultar resultados previos
-        resultsContainer.style.display = 'none';
-        accuracyBadge.style.display = 'none';
-        
-        // Limpiar canvas
-        const ctx = detectionCanvas.getContext('2d');
-        ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
-        
-        // Ajustar tamaño del canvas
-        detectionCanvas.width = img.width;
-        detectionCanvas.height = img.height;
-        
-        showStatus("✅ Imagen cargada. Haz clic en 'Analizar Imagen con IA'", "success");
-        
-        // Scroll a la imagen
-        imagePreviewContainer.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Analizar imagen
-    async function analyzeImage() {
-        if (!model || !currentImage) {
-            showStatus("❌ Primero carga una imagen", "error");
-            return;
-        }
-        
-        analyzeButton.disabled = true;
-        showStatus("🔍 Analizando imagen con IA...", "info");
-        
-        try {
-            // Mostrar loading
-            loadingOverlay.style.display = 'flex';
-            loadingText.textContent = "Analizando imagen...";
-            
-            // Realizar detección
-            const detections = await model.detect(currentImage);
-            currentDetections = detections;
-            
-            // Procesar resultados
-            processDetections(detections);
-            
-            // Dibujar detecciones en canvas
-            drawDetections(detections);
-            
-            // Mostrar resultados
-            showDetectionResults(detections);
-            
-            showStatus("✅ Análisis completado", "success");
-            
-        } catch (error) {
-            console.error("Error en análisis:", error);
-            showStatus("❌ Error analizando imagen: " + error.message, "error");
-        } finally {
-            // Ocultar loading
-            loadingOverlay.style.display = 'none';
-            analyzeButton.disabled = false;
-        }
-    }
-
-    // Procesar detecciones
-    function processDetections(detections) {
-        let adultos = 0;
-        let niños = 0;
-        let carros = 0;
-        let otros = 0;
-        let totalConfidence = 0;
-        
-        detections.forEach(det => {
-            totalConfidence += det.score;
-            
-            if (det.class === 'person') {
-                // Distinguir entre adulto y niño basado en el tamaño del bounding box
-                const boxHeight = det.bbox[3];
-                const imageHeight = currentImage.height;
-                
-                if (boxHeight < imageHeight * 0.3) {
-                    niños++;
-                } else {
-                    adultos++;
-                }
-            } else if (det.class === 'car' || det.class === 'truck') {
-                carros++;
-            } else {
-                otros++;
-            }
-        });
-        
-        const averageConfidence = detections.length > 0 ? 
-            (totalConfidence / detections.length) * 100 : 0;
-        
-        lastDetectionResults = {
-            adultos,
-            niños,
-            carros,
-            otros,
-            totalObjects: detections.length,
-            averageConfidence: Math.round(averageConfidence),
-            timestamp: new Date().toISOString()
-        };
-    }
-
-    // Dibujar detecciones en canvas
-    function drawDetections(detections) {
-        const ctx = detectionCanvas.getContext('2d');
-        const imageWidth = currentImage.width;
-        const imageHeight = currentImage.height;
-        
-        // Limpiar canvas
-        ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
-        
-        // Configurar estilo
-        ctx.lineWidth = 2;
-        ctx.font = '14px Arial';
-        ctx.textBaseline = 'top';
-        
-        detections.forEach(det => {
-            const [x, y, width, height] = det.bbox;
-            const score = Math.round(det.score * 100);
-            const label = `${det.class} ${score}%`;
-            
-            // Determinar color según clase
-            let color;
-            if (det.class === 'person') {
-                const isChild = height < imageHeight * 0.3;
-                color = isChild ? '#2ecc71' : '#3498db';
-            } else if (det.class === 'car' || det.class === 'truck') {
-                color = '#e74c3c';
-            } else {
-                color = '#9b59b6';
-            }
-            
-            // Dibujar rectángulo
-            ctx.strokeStyle = color;
-            ctx.strokeRect(x, y, width, height);
-            
-            // Dibujar fondo para etiqueta
-            const textWidth = ctx.measureText(label).width;
-            ctx.fillStyle = color;
-            ctx.fillRect(x, y - 20, textWidth + 10, 20);
-            
-            // Dibujar texto
-            ctx.fillStyle = 'white';
-            ctx.fillText(label, x + 5, y - 15);
-        });
-        
-        // Mostrar badge de precisión
-        if (detections.length > 0) {
-            const avgConfidence = Math.round(lastDetectionResults.averageConfidence);
-            accuracyBadge.textContent = `Precisión: ${avgConfidence}%`;
-            accuracyBadge.style.display = 'block';
-        }
-    }
-
-    // Mostrar resultados de detección
-    function showDetectionResults() {
-        if (!lastDetectionResults) return;
-        
-        const { adultos, niños, carros, otros, totalObjects, averageConfidence } = lastDetectionResults;
-        
-        // Actualizar estadísticas
-        detectionStats.innerHTML = `
-            <div class="stat-item">
-                <div class="stat-value text-primary">${adultos}</div>
-                <div class="stat-label">Adultos</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value text-success">${niños}</div>
-                <div class="stat-label">Niños</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value text-danger">${carros}</div>
-                <div class="stat-label">Vehículos</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" style="color: #9b59b6;">${otros}</div>
-                <div class="stat-label">Otros</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" style="color: #2c3e50;">${totalObjects}</div>
-                <div class="stat-label">Total Objetos</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" style="color: #f39c12;">${averageConfidence}%</div>
-                <div class="stat-label">Precisión</div>
-            </div>
-        `;
-        
-        // Mostrar contenedor de resultados
-        resultsContainer.style.display = 'block';
-        
-        // Scroll a resultados
-        resultsContainer.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    // Agregar al conteo total
-    function addToCount() {
-        if (!lastDetectionResults) {
-            showStatus("❌ Primero analiza una imagen", "error");
-            return;
-        }
-        
-        const { adultos, niños, carros } = lastDetectionResults;
-        const totalPersonas = adultos + niños;
-        
-        if (totalPersonas === 0 && carros === 0) {
-            showStatus("⚠️ No hay personas ni vehículos para agregar", "info");
-            return;
-        }
-        
-        const confirmMessage = `¿Agregar al conteo total?\n\n` +
-                              `👥 Personas: ${totalPersonas} (${adultos} adultos + ${niños} niños)\n` +
-                              `🚗 Vehículos: ${carros}\n\n` +
-                              `Confianza: ${lastDetectionResults.averageConfidence}%`;
-        
-        if (confirm(confirmMessage)) {
-            // Actualizar conteos
-            counts.adultos += adultos;
-            counts.niños += niños;
-            counts.carros += carros;
-            
-            // Actualizar UI
-            actualizarUI();
-            
-            // Guardar en historial
-            guardarEnHistorial(adultos, niños, carros);
-            
-            // Mostrar confirmación
-            showStatus(`✅ ¡${totalPersonas} personas y ${carros} vehículos agregados al conteo!`, "success");
-            
-            // Efecto visual
-            mostrarEfectoAgregado(adultos, niños, carros);
-            
-            // Resetear para nueva imagen
-            resetDetection();
-        }
-    }
-
-    // Efecto visual al agregar
-    function mostrarEfectoAgregado(a, n, c) {
-        const elementos = [
-            {id: 'adultos-val', show: a > 0},
-            {id: 'niños-val', show: n > 0},
-            {id: 'carros-val', show: c > 0},
-            {id: 'total-personas', show: (a + n) > 0}
-        ];
-        
-        elementos.forEach(item => {
-            if (item.show) {
-                const el = document.getElementById(item.id);
-                el.style.color = '#27ae60';
-                el.style.transform = 'scale(1.1)';
-                setTimeout(() => {
-                    el.style.color = '';
-                    el.style.transform = 'scale(1)';
-                }, 500);
-            }
-        });
-    }
-
-    // Resetear detección actual
-    function resetDetection() {
-        currentImage = null;
-        currentDetections = [];
-        lastDetectionResults = null;
-        
-        // Limpiar vista previa
-        previewImage.src = '';
-        imagePreviewContainer.style.display = 'none';
-        fileInfo.style.display = 'none';
-        
-        // Limpiar canvas
-        const ctx = detectionCanvas.getContext('2d');
-        ctx.clearRect(0, 0, detectionCanvas.width, detectionCanvas.height);
-        accuracyBadge.style.display = 'none';
-        
-        // Deshabilitar botón de análisis
-        analyzeButton.disabled = true;
-        
-        // Ocultar resultados
-        resultsContainer.style.display = 'none';
-        
-        // Resetear input de archivo
-        fileInput.value = '';
-        
-        showStatus("✅ Listo para nueva imagen", "info");
-    }
-
-    // Guardar en historial
-    function guardarEnHistorial(adultos, niños, carros) {
-        const timestamp = new Date();
-        const entry = {
-            timestamp: timestamp.toISOString(),
-            adultos,
-            niños,
-            carros,
-            totalPersonas: adultos + niños,
-            image: currentImage ? 'guardada' : 'no disponible'
-        };
-        
-        historial.unshift(entry);
-        
-        // Limitar a 10 entradas
-        if (historial.length > 10) {
-            historial = historial.slice(0, 10);
-        }
-        
-        // Mostrar historial
-        mostrarHistorial();
-        
-        // Guardar en localStorage
-        guardarEnStorage();
-        
-        // Actualizar timestamp
-        updateTimestamp();
-    }
-
-    // Mostrar historial
-    function mostrarHistorial() {
-        const container = document.getElementById('historial-container');
-        const lista = document.getElementById('historial-lista');
-        
-        if (historial.length === 0) {
-            container.style.display = 'none';
-            return;
-        }
-        
-        container.style.display = 'block';
-        lista.innerHTML = '';
-        
-        historial.forEach((item, index) => {
-            const fecha = new Date(item.timestamp);
-            const hora = fecha.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const fechaStr = fecha.toLocaleDateString();
-            
-            const div = document.createElement('div');
-            div.className = 'history-item';
-            div.innerHTML = `
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <strong>${hora}</strong> - ${fechaStr}
+        <div class="tab-content active" id="dashboard">
+            <div class="main-content">
+                <section class="charts-section">
+                    <div class="highlight-card">
+                        <div class="highlight-number" id="lastActivityCount">0</div>
+                        <div class="highlight-label" id="lastActivityLabel">Cargando última actividad...</div>
                     </div>
-                    <div>
-                        <span class="badge-adult detection-badge">${item.adultos}A</span>
-                        <span class="badge-child detection-badge">${item.niños}N</span>
-                        <span class="badge-car detection-badge">${item.carros}V</span>
+                    
+                    <h2 class="section-title">Análisis de Asistencia</h2>
+                    
+                    <div class="last-sunday-title" id="lastSundayTitle">Último Domingo Registrado</div>
+                    <div class="last-sunday-date" id="lastSundayDate"></div>
+                    
+                    <div class="stats-grid" id="sundayAnalysis">
+                        <!-- Los 4 cuadros de análisis del domingo se generarán automáticamente -->
                     </div>
-                </div>
-                <div class="mt-2 small text-muted">
-                    Total: ${item.totalPersonas} personas
-                </div>
-            `;
-            lista.appendChild(div);
-        });
-    }
 
-    // Cambiar contadores manualmente
-    function cambiar(tipo, valor) {
-        const nuevoValor = counts[tipo] + valor;
-        
-        if (nuevoValor < 0) {
-            showStatus("❌ El valor no puede ser negativo", "error");
-            return;
-        }
-        
-        counts[tipo] = nuevoValor;
-        actualizarUI();
-        guardarEnStorage();
-        
-        // Efecto visual
-        const elemento = document.getElementById(`${tipo}-val`);
-        elemento.style.color = valor > 0 ? '#27ae60' : '#e74c3c';
-        elemento.style.transform = 'scale(1.1)';
-        setTimeout(() => {
-            elemento.style.color = '';
-            elemento.style.transform = 'scale(1)';
-        }, 300);
-        
-        showStatus(`✅ ${tipo} actualizado: ${counts[tipo]}`, "success");
-    }
-
-    // Actualizar toda la interfaz
-    function actualizarUI() {
-        // Actualizar contadores individuales
-        document.getElementById('adultos-val').innerText = counts.adultos;
-        document.getElementById('niños-val').innerText = counts.niños;
-        document.getElementById('carros-val').innerText = counts.carros;
-        
-        // Actualizar totales
-        const totalPersonas = counts.adultos + counts.niños;
-        document.getElementById('total-personas').innerText = totalPersonas;
-        document.getElementById('total-carros').innerText = counts.carros;
-        
-        // Actualizar timestamp
-        updateTimestamp();
-    }
-
-    // Actualizar timestamp
-    function updateTimestamp() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString();
-        document.getElementById('timestamp').textContent = `Última actualización: ${timeString}`;
-    }
-
-    // Confirmar limpieza
-    function confirmarLimpiar() {
-        const totalPersonas = counts.adultos + counts.niños;
-        const totalVehículos = counts.carros;
-        
-        if (totalPersonas === 0 && totalVehículos === 0) {
-            showStatus("✅ El conteo ya está en cero", "info");
-            return;
-        }
-        
-        const confirmacion = confirm(
-            `⚠️ ¿REINICIAR TODO EL CONTEO?\n\n` +
-            `Esto eliminará:\n` +
-            `👥 ${totalPersonas} personas registradas\n` +
-            `🚗 ${totalVehículos} vehículos registrados\n` +
-            `📝 ${historial.length} análisis del historial\n\n` +
-            `Esta acción no se puede deshacer.`
-        );
-        
-        if (confirmacion) {
-            counts = { adultos: 0, niños: 0, carros: 0 };
-            historial = [];
-            actualizarUI();
-            resetDetection();
-            
-            // Ocultar contenedores
-            document.getElementById('historial-container').style.display = 'none';
-            
-            // Limpiar localStorage
-            localStorage.removeItem('iglesiaConteoImagen');
-            
-            showStatus("✅ Todo el conteo ha sido reiniciado", "success");
-        }
-    }
-
-    // Exportar a CSV
-    function exportarCSV() {
-        const fecha = new Date();
-        const fechaStr = fecha.toLocaleDateString().replace(/\//g, '-');
-        const horaStr = fecha.toLocaleTimeString().replace(/:/g, '-');
-        
-        let csvContent = "data:text/csv;charset=utf-8,";
-        
-        // Encabezado
-        csvContent += "REPORTE DE ASISTENCIA - IGLESIA IMPACTO PRO\r\n";
-        csvContent += "Sistema de Conteo por Imagen v3.0\r\n";
-        csvContent += `Fecha de generación: ${fecha.toLocaleString()}\r\n\r\n`;
-        
-        // Resumen general
-        csvContent += "RESUMEN GENERAL\r\n";
-        csvContent += "Categoría,Cantidad\r\n";
-        csvContent += `Adultos,${counts.adultos}\r\n`;
-        csvContent += `Niños,${counts.niños}\r\n`;
-        csvContent += `Total Personas,${counts.adultos + counts.niños}\r\n`;
-        csvContent += `Vehículos,${counts.carros}\r\n\r\n`;
-        
-        // Historial de análisis
-        if (historial.length > 0) {
-            csvContent += "HISTORIAL DE ANÁLISIS POR IMAGEN\r\n";
-            csvContent += "Fecha,Hora,Adultos,Niños,Vehículos,Total Personas\r\n";
-            
-            historial.forEach(item => {
-                const d = new Date(item.timestamp);
-                csvContent += `${d.toLocaleDateString()},${d.toLocaleTimeString()},${item.adultos},${item.niños},${item.carros},${item.totalPersonas}\r\n`;
-            });
-        }
-        
-        // Crear y descargar archivo
-        const encodedUri = encodeURI(csvContent);
-        const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `reporte_asistencia_${fechaStr}_${horaStr}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showStatus("✅ Reporte exportado exitosamente", "success");
-    }
-
-    // Guardar en localStorage
-    function guardarEnStorage() {
-        const data = {
-            counts: counts,
-            historial: historial,
-            fechaGuardado: new Date().toISOString(),
-            version: '3.0'
-        };
-        try {
-            localStorage.setItem('iglesiaConteoImagen', JSON.stringify(data));
-        } catch (e) {
-            console.warn("No se pudo guardar en localStorage:", e);
-        }
-    }
-
-    // Cargar desde localStorage
-    function cargarDesdeStorage() {
-        try {
-            const guardado = localStorage.getItem('iglesiaConteoImagen');
-            if (guardado) {
-                const data = JSON.parse(guardado);
-                counts = data.counts || counts;
-                historial = data.historial || historial;
-                actualizarUI();
+                    <!-- Sección para mostrar servicios del día actual -->
+                    <div class="today-services" id="todayServices">
+                        <h3 class="section-title">Servicios de Hoy</h3>
+                        <div class="services-grid" id="todayServicesGrid">
+                            <!-- Se llenará automáticamente con los servicios de hoy -->
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-bar"></i> Promedio Mensual de Asistencia</h3>
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-users"></i> Asistencia por Tipo de Servicio</h3>
+                        <canvas id="averageChart"></canvas>
+                    </div>
+                </section>
                 
-                if (historial.length > 0) {
-                    mostrarHistorial();
-                }
+                <section class="charts-section">
+                    <div class="chart-container">
+                        <h3><i class="fas fa-chart-pie"></i> Distribución por Horario</h3>
+                        <canvas id="serviceDistributionChart"></canvas>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3><i class="fas fa-car"></i> Evolución de Vehículos</h3>
+                        <canvas id="vehiclesChart"></canvas>
+                    </div>
+                    
+                    <div class="comparison">
+                        <h3><i class="fas fa-trending-up"></i> Tendencia Actual</h3>
+                        <p id="trendMessage">Cargando análisis...</p>
+                    </div>
+
+                    <!-- === SISTEMA DE BACKUP ACTUALIZADO === -->
+                    <div class="backup-section">
+                        <h3><i class="fas fa-shield-alt"></i> Sistema de Seguridad</h3>
+                        
+                        <div class="backup-status">
+                            <div class="status-indicator" id="backupStatus"></div>
+                            <span id="backupMessage">Verificando estado del backup...</span>
+                        </div>
+                        
+                        <div class="backup-actions">
+                            <button class="backup-btn" onclick="createBackup()">
+                                <i class="fas fa-file-excel"></i> Descargar Excel
+                            </button>
+                            <button class="backup-btn email" onclick="emailBackup()">
+                                <i class="fas fa-envelope"></i> Enviar por Email
+                            </button>
+                            <button class="backup-btn" onclick="downloadWeeklyReport()">
+                                <i class="fas fa-calendar-week"></i> Reporte Semanal
+                            </button>
+                            <button class="backup-btn" onclick="downloadMonthlyReport()">
+                                <i class="fas fa-calendar-alt"></i> Reporte Mensual
+                            </button>
+                        </div>
+                    </div>
+
+
+                    <!-- === SISTEMA WHATSAPP === -->
+                    <div class="whatsapp-section">
+                        <h3><i class="fab fa-whatsapp"></i> Compartir en WhatsApp</h3>
+                        <p style="margin-bottom: 15px; color: #666;">Comparte automáticamente las estadísticas con tu equipo:</p>
+                        
+                        <div class="share-actions">
+                            <button class="whatsapp-btn" onclick="shareWeeklySummary()">
+                                <i class="fas fa-chart-line"></i> Resumen Semanal
+                            </button>
+                            <button class="whatsapp-btn" onclick="shareSundaySummary()">
+                                <i class="fas fa-church"></i> Resumen Dominical
+                            </button>
+                            <button class="whatsapp-btn secondary" onclick="shareMonthlyReport()">
+                                <i class="fas fa-calendar-alt"></i> Reporte Mensual
+                            </button>
+                            <button class="whatsapp-btn secondary" onclick="shareVehiclesReport()">
+                                <i class="fas fa-car"></i> Estadísticas Vehículos
+                            </button>
+                        </div>
+                    </div>
+
+                   <!-- Botones de exportación -->
+                    <div class="dashboard-export">
+                        <button class="export-btn" onclick="exportTodayData()">
+                            <i class="fas fa-file-export"></i> Exportar Datos de Hoy
+                        </button>
+                        <button class="export-btn" onclick="exportMonthReport()">
+                            <i class="fas fa-chart-bar"></i> Reporte Mensual
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+        
+        </div>
+        
+        <div class="tab-content" id="registro">
+            <section class="form-section">
+                <h2 class="section-title">Ingresar Nuevos Datos</h2>
+                <form id="attendanceForm">
+                    <div class="form-group">
+                        <label for="date"><i class="fas fa-calendar"></i> Fecha:</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="serviceType"><i class="fas fa-clock"></i> Tipo de Servicio:</label>
+                        <select id="serviceType" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="9am">Domingo 9:00 AM</option>
+                            <option value="11am">Domingo 11:00 AM</option>
+                            <option value="5pm">Domingo 5:00 PM</option>
+                            <option value="cena_amor">Cena de Amor</option>
+                            <option value="especial">Servicio Especial</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="asistentes"><i class="fas fa-users"></i> Total de Asistentes:</label>
+                        <input type="number" id="asistentes" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="niños"><i class="fas fa-child"></i> Niños (si aplica):</label>
+                        <input type="number" id="niños" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehiculos_impacto"><i class="fas fa-car"></i> Vehículos Impacto:</label>
+                        <input type="number" id="vehiculos_impacto" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="vehiculos_lf"><i class="fas fa-school"></i> Vehículos Little Feet:</label>
+                        <input type="number" id="vehiculos_lf" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="ofrenda"><i class="fas fa-donate"></i> Ofrenda (Lps):</label>
+                        <input type="number" id="ofrenda" min="0" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="notas"><i class="fas fa-sticky-note"></i> Notas Adicionales:</label>
+                        <input type="text" id="notas" placeholder="Observaciones importantes...">
+                    </div>
+                    
+                    <button type="submit"><i class="fas fa-save"></i> Guardar Registro</button>
+                </form>
+            </section>
+        </div>
+        
+        <div class="tab-content" id="historico">
+            <section class="form-section">
+                <h2 class="section-title">Datos Históricos Completos</h2>
+                <p style="text-align: center; color: #718096;">Base de datos extraída del chat de WhatsApp (Enero 2025 - Septiembre 2025)</p>
                 
-                console.log("Datos cargados desde almacenamiento local");
-            }
-        } catch (e) {
-            console.warn("Error cargando datos guardados:", e);
-        }
-    }
+                <div class="chart-container">
+                    <h3><i class="fas fa-table"></i> Resumen de Todos los Registros</h3>
+                    <div style="overflow-x: auto;">
+                        <table class="data-table" id="historicalData">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Servicio</th>
+                                    <th>Asistentes</th>
+                                    <th>Niños</th>
+                                    <th>Vehículos Total</th>
+                                    <th>Vehículos LF</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historicalTableBody">
+                                <!-- Los datos se llenarán automáticamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="export-btn" onclick="exportToCSV()"><i class="fas fa-download"></i> Exportar a CSV</button>
+                </div>
+            </section>
+        </div>
+        
+        <div class="impacto-footer">
+            <p><i class="fas fa-church"></i> Impacto SPS - Sistema de Estadísticas</p>
+            <p style="opacity: 0.8; font-size: 0.9em; margin-top: 5px;">Datos actualizados al <span id="currentDate"></span></p>
+        </div>
+    </div>
 
-    // Inicializar aplicación
-    async function initApp() {
-        console.log("Iniciando aplicación...");
-        
-        // Cargar datos guardados
-        cargarDesdeStorage();
-        
-        // Cargar modelo de IA
-        await loadModel();
-        
-        // Actualizar información del sistema
-        document.getElementById('systemInfo').textContent = 
-            `Modelo: COCO-SSD | TF.js ${tf.version.tfjs}`;
-        
-        console.log("Aplicación inicializada correctamente");
-    }
-
-    // Auto-guardar cada 30 segundos
-    setInterval(guardarEnStorage, 30000);
-
-    // Iniciar cuando cargue la página
-    window.addEventListener('DOMContentLoaded', initApp);
-</script>
+    <!-- Cargar JavaScript modular -->
+    <script src="js/app.js"></script>
+    <script src="js/backup.js"></script>
+    <script src="js/whatsapp.js"></script>
 </body>
-    </html>
+</html>
